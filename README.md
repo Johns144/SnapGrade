@@ -22,7 +22,7 @@ An answer-sheet grader for classroom exams, built for Grade 11 teachers. It work
 | `app-student.js` | Student exam screen |
 | `app-teacher.js` | Teacher workspace |
 | `build.js` | Joins everything into `pencilmark.html` |
-| `pencilmark.html` | The built app (one self-contained file) |
+| `pencilmark.html`, `index.html` | The built app (one self-contained file); `index.html` is the same file for static hosting such as Vercel |
 
 The app is designed to run as a Claude artifact. Online storage, the student link and downloads use the artifact runtime (`window.claude`). Opened as a plain HTML file, the exam editor, scanner and offline features still work and keep data in the browser.
 

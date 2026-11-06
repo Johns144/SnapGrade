@@ -6,5 +6,6 @@ if (/<\/script/i.test(app) || /<\/script/i.test(rd('omr-core.js'))) throw new Er
 const clean = app.replace('/*__TEST_HOOK__*/', '');
 const html = rd('shell.html').replace('<!--OMR-->', () => rd('omr-core.js')).replace('<!--APP-->', () => clean);
 fs.writeFileSync(d + 'pencilmark.html', html);
+fs.writeFileSync(d + 'index.html', html);   // same app, so static hosts such as Vercel serve it at /
 fs.writeFileSync(d + 'bundle.js', rd('omr-core.js') + '\n' + app.replace('/*__TEST_HOOK__*/', 'if (window.__PM_TEST) window.__PM_TEST.api = { T, saveScan, scanCard, render, examsHTML, resultsHTML, settingsHTML, restore: restoreBackup };'));
 console.log('built', html.length, 'bytes');

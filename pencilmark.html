@@ -1,0 +1,1888 @@
+<title>SnapGrade</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style id="pm-css">
+/* Layout: a printed answer sheet. Timing marks run along the top edge, labels read like form fields, and the oval bubble is the only round shape. */
+:root{
+  --bg:#F5F6F1; --surface:#FFFFFF; --ink:#1D2023; --muted:#5B6066; --line:#D7D9D0; --soft:#ECEDE6;
+  --accent:#1D2023; --accent-ink:#FFFFFF; --accent-soft:#FBF0C4;
+  --hi:#F4C430; --hi-2:#E6B419; --hi-ink:#1D2023; --hi-edge:#1D2023;
+  --good:#1E7547; --good-soft:#DDF0E2; --bad:#B4302A; --bad-soft:#F8E0DC; --warn:#9A4F00; --warn-soft:#FBE6CF;
+  --font-display:'Archivo','Arial Narrow','Segoe UI',system-ui,sans-serif;
+  --font-body:'Atkinson Hyperlegible','Segoe UI',system-ui,sans-serif;
+  --font-mono:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141618; --surface:#1C1F22; --ink:#ECEDE8; --muted:#A3A8A1; --line:#34383C; --soft:#25282C;
+  --accent:#F4C430; --accent-ink:#141618; --accent-soft:#383017;
+  --hi:#F4C430; --hi-2:#FFD456; --hi-ink:#141618; --hi-edge:#F4C430;
+  --good:#6BD49B; --good-soft:#163323; --bad:#FF8E85; --bad-soft:#3C201E; --warn:#F2A35E; --warn-soft:#3B2716; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141618; --surface:#1C1F22; --ink:#ECEDE8; --muted:#A3A8A1; --line:#34383C; --soft:#25282C;
+  --accent:#F4C430; --accent-ink:#141618; --accent-soft:#383017;
+  --hi:#F4C430; --hi-2:#FFD456; --hi-ink:#141618; --hi-edge:#F4C430;
+  --good:#6BD49B; --good-soft:#163323; --bad:#FF8E85; --bad-soft:#3C201E; --warn:#F2A35E; --warn-soft:#3B2716; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--font-body);
+  padding-block:0 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+h1,h2,h3{font-family:var(--font-display);margin:0;text-wrap:balance;line-height:1.15}
+h1{font-size:28px;font-weight:800;font-stretch:112%;letter-spacing:-.01em} h2{font-size:14px;font-weight:700;font-stretch:80%;text-transform:uppercase;letter-spacing:.08em} h3{font-size:15px;font-weight:700}
+p{margin:0}
+button,input,select,textarea{font:inherit;color:inherit}
+input,select,textarea{width:100%;background:var(--surface);border:1.5px solid var(--line);border-radius:4px;padding:10px 11px;min-height:44px}
+input:hover,select:hover,textarea:hover{border-color:var(--muted)}
+textarea{resize:vertical;line-height:1.45}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:860px;margin:0 auto}
+.mono{font-family:var(--font-mono)}
+.muted{color:var(--muted)}
+.pad{padding:24px 0}
+
+/* top bar */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-top:14px}
+.top::after,.stu::before{content:"";display:block;height:6px;background:repeating-linear-gradient(90deg,var(--ink) 0 12px,transparent 12px 30px);opacity:.85}
+.brand{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:10px}
+.logo{display:flex;align-items:center;gap:10px;font:800 21px var(--font-display);font-stretch:118%;letter-spacing:-.01em}
+.logo i{width:26px;height:18px;border-radius:50%;border:2px solid var(--ink);display:inline-block;background:var(--ink);box-shadow:inset 0 0 0 2.5px var(--bg)}
+.logo b{font-weight:800;background:linear-gradient(transparent 58%,var(--hi) 58% 92%,transparent 92%);padding:0 1px}
+.sync{font:600 12px var(--font-mono);color:var(--muted);border:1.5px solid var(--line);border-radius:4px;padding:3px 8px;white-space:nowrap}
+.sync.warn{color:var(--warn);border-color:var(--warn)}
+.tabs{display:flex;gap:2px;overflow-x:auto}
+.tab{appearance:none;border:0;background:none;padding:10px 14px 9px;font:700 14px var(--font-display);font-stretch:85%;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+.tab:hover{color:var(--ink)}
+.tab[aria-selected=true]{color:var(--ink);border-color:var(--hi)}
+#view{padding-top:24px;display:flex;flex-direction:column;gap:24px}
+
+/* controls */
+.btn{appearance:none;font:700 15px var(--font-body);padding:9px 16px;border-radius:4px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;min-height:44px}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--hi);border-color:var(--hi-edge);color:var(--hi-ink);box-shadow:0 2px 0 var(--hi-edge)}
+.btn.primary:hover{background:var(--hi-2)}
+.btn.primary:active{transform:translateY(2px);box-shadow:none}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad)}
+.btn[disabled]{opacity:.5;cursor:default}
+.link{appearance:none;border:0;background:none;color:var(--ink);font:700 14px var(--font-body);cursor:pointer;padding:6px 0;text-decoration:underline;text-decoration-color:var(--hi);text-decoration-thickness:3px;text-underline-offset:3px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.f{display:flex;flex-direction:column;gap:6px;font:700 12px var(--font-display);font-stretch:80%;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.f input,.f select,.f textarea{font:400 16px var(--font-body);text-transform:none;letter-spacing:0;color:var(--ink)}
+.opt{font-weight:500;text-transform:none;letter-spacing:0;font-stretch:100%}
+.hint{font-size:14px;color:var(--muted);max-width:68ch}
+.note{font-size:14px;padding:10px 12px;border-radius:4px;background:var(--soft)}
+.note.warn{background:var(--warn-soft);color:var(--warn)}
+.note.bad{background:var(--bad-soft);color:var(--bad)}
+.note.good{background:var(--good-soft);color:var(--good)}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.blk{display:flex;flex-direction:column;gap:12px;padding-top:22px;border-top:1.5px solid var(--ink)}
+.blk:first-child{border-top:0;padding-top:0}
+.seg{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.segb{appearance:none;min-width:52px;min-height:40px;padding:8px 14px;border-radius:50%/50%;border:1.5px solid var(--muted);background:var(--surface);font:600 14px var(--font-mono);cursor:pointer}
+.segb[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.cust{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.cust input{width:84px}
+.saved{font-size:12px;color:var(--muted)}
+.pill{display:inline-block;font:700 11px var(--font-display);font-stretch:85%;text-transform:uppercase;letter-spacing:.06em;padding:3px 7px;border-radius:3px;background:var(--soft);color:var(--muted);white-space:nowrap}
+.pill.live{background:var(--good-soft);color:var(--good)}
+.pill.bad{background:var(--bad-soft);color:var(--bad)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.good{background:var(--good-soft);color:var(--good)}
+
+/* exam list */
+.list{display:flex;flex-direction:column;border-top:1.5px solid var(--ink)}
+.item{appearance:none;display:grid;grid-template-columns:1fr auto;gap:2px 12px;text-align:left;padding:14px 4px;border:0;border-bottom:1px solid var(--line);background:none;cursor:pointer;align-items:center}
+.item:hover{background:var(--soft)}
+.item .t{font:700 17px var(--font-display);font-stretch:105%}
+.item .m{grid-column:1;font-size:13px;color:var(--muted)}
+.item .r{grid-row:1/3;grid-column:2;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.empty{padding:28px 0;display:flex;flex-direction:column;gap:12px;max-width:520px}
+.presets{display:flex;gap:8px;flex-wrap:wrap}
+
+/* answer bubbles */
+.bub{width:38px;height:30px;border-radius:50%;border:1.5px solid var(--muted);display:inline-grid;place-items:center;font:600 12px var(--font-mono);color:var(--muted);background:var(--surface);cursor:pointer;padding:0;flex:none}
+.bub[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.bub.sm{width:32px;height:24px;font-size:12px;cursor:default}
+.bub.good{background:var(--good);border-color:var(--good);color:#fff}
+.bub.bad{background:var(--bad);border-color:var(--bad);color:#fff}
+.bub.ring{border-color:var(--good);border-width:2.5px;color:var(--good)}
+.krow{display:grid;grid-template-columns:34px 1fr auto;gap:6px 10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.kn{font:600 13px var(--font-mono);color:var(--muted);text-align:right}
+.kb{display:flex;gap:8px;flex-wrap:wrap}
+.qfull{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;padding:4px 0 8px 44px}
+.cl{display:flex;align-items:center;gap:8px}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-left:6px}
+.linkbox{display:flex;gap:8px;flex-wrap:wrap}
+.linkbox input{flex:1 1 260px;font-family:var(--font-mono);font-size:13px}
+
+/* scan */
+.drop{display:flex;flex-direction:column;gap:10px;padding:18px;border:2px dashed var(--muted);border-radius:4px}
+.scan{display:flex;flex-direction:column;gap:12px;padding:16px;border:1.5px solid var(--line);border-radius:4px;background:var(--surface)}
+.scan header{display:flex;justify-content:space-between;gap:10px;align-items:center;flex-wrap:wrap}
+.cvwrap{overflow-x:auto;max-width:100%;border:1px solid var(--line);border-radius:6px;flex:0 1 560px;min-width:0}
+.rcv{display:block;width:780px;height:auto;cursor:crosshair;touch-action:pan-x pan-y;background:#fff}
+@media (min-width:760px){.rcv{width:100%;max-width:560px}}
+.scanrow{display:flex;gap:18px;flex-wrap:wrap;align-items:flex-start}
+.scanrow .side{flex:1 1 240px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.savedline{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+
+/* results */
+.stats{display:flex;gap:22px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.stats b{display:block;font:800 26px var(--font-display);font-stretch:110%;color:var(--ink);font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto;border-top:1.5px solid var(--ink)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:560px}
+th{font:700 12px var(--font-display);font-stretch:80%;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);text-align:left;padding:10px 8px}
+td{padding:10px 8px;border-top:1px solid var(--line);vertical-align:middle}
+tr.sel td{background:var(--accent-soft)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.rowbtn{appearance:none;border:0;background:none;text-align:left;cursor:pointer;font-weight:600;padding:0}
+.det{display:flex;flex-direction:column;gap:12px;padding:12px 8px 16px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;flex-direction:column;align-items:center;font:600 11px var(--font-mono);gap:2px;min-width:30px}
+.chip span{width:32px;height:24px;border-radius:50%;display:grid;place-items:center;border:1.5px solid var(--line)}
+.chip.ok span{background:var(--good);border-color:var(--good);color:#fff}
+.chip.no span{background:var(--bad);border-color:var(--bad);color:#fff}
+.chip.bl span{border-style:dashed}
+.ia{display:grid;grid-template-columns:34px 1fr 52px;gap:4px 10px;align-items:center;font-size:13px;padding:7px 0;border-bottom:1px solid var(--line)}
+.bar{height:10px;border-radius:5px;background:var(--soft);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent)}
+.bar.low i{background:var(--bad)}
+.dist{grid-column:2/4;color:var(--muted);font:12px var(--font-mono)}
+textarea.code{font-family:var(--font-mono);font-size:13px;min-height:96px;word-break:break-all}
+
+/* student */
+.is-student .wrap{max-width:660px}
+.stu{display:flex;flex-direction:column;gap:20px;padding-top:16px}
+.sbar{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.sbar b{font:800 18px var(--font-display);font-stretch:108%}
+.timer{font:600 20px var(--font-mono);font-variant-numeric:tabular-nums;border:1.5px solid var(--line);border-radius:4px;padding:4px 10px}
+.timer.low{color:var(--bad);border-color:var(--bad)}
+.prog{height:8px;border-radius:0;background:var(--soft);overflow:hidden}
+.prog i{display:block;height:100%;background:var(--hi);transition:width .2s}
+.qh{font:700 13px var(--font-display);font-stretch:80%;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.qtext{margin:0;font-size:20px;line-height:1.5;max-width:60ch;white-space:pre-wrap;user-select:none;-webkit-user-select:none}
+.choices{display:flex;flex-direction:column;gap:10px}
+.choice{appearance:none;display:flex;gap:14px;align-items:center;text-align:left;padding:12px 14px;min-height:56px;border:1.5px solid var(--line);border-radius:4px;background:var(--surface);color:var(--ink);cursor:pointer;font:400 17px/1.4 var(--font-body);user-select:none;-webkit-user-select:none}
+.choice .bub{cursor:inherit}
+.choice:hover{border-color:var(--muted)}
+.choice[aria-pressed=true]{border-color:var(--ink);background:var(--accent-soft)}
+.choice[aria-pressed=true] .bub{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.qmap{display:flex;flex-wrap:wrap;gap:6px}
+.qm{appearance:none;width:42px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);font:600 12px var(--font-mono);cursor:pointer}
+.qm.done{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.qm.cur{outline:3px solid var(--hi);outline-offset:2px}
+.srow{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.rules{display:flex;flex-direction:column;gap:6px;padding-left:18px;margin:0;font-size:14px}
+.awayov{position:fixed;inset:0;z-index:50;background:rgba(10,14,20,.78);display:grid;place-items:center;padding:20px}
+.awaybox{background:var(--surface);border-radius:4px;border-top:6px solid var(--hi);padding:22px;max-width:420px;display:flex;flex-direction:column;gap:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:4px;border-left:6px solid var(--hi);font-size:14px;z-index:60;max-width:min(92vw,520px)}
+.qm.fl{border-style:dashed;border-color:var(--warn);color:var(--warn)}
+.qm.fl.done{color:var(--bg)}
+.btn[aria-pressed=true]{border-color:var(--warn);color:var(--warn)}
+.hf{margin:0;display:flex;flex-direction:column;gap:6px}
+.hist{display:flex;align-items:flex-end;gap:6px;height:126px;border-bottom:1px solid var(--line)}
+.hcol{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:3px;height:100%}
+.hbar{width:100%;max-width:46px;background:var(--hi);border:1.5px solid var(--hi-edge);border-bottom:0}
+.hn{font:600 12px var(--font-mono);color:var(--muted)}
+.hx{display:flex;gap:6px}
+.hx span{flex:1;text-align:center;font:11px var(--font-mono);color:var(--muted)}
+.sub{display:none;font:12px var(--font-mono);color:var(--muted)}
+@media (max-width:600px){.hs{display:none}.sub{display:block}table{min-width:0}td,th{padding-left:5px;padding-right:5px}}
+/* exam menu and analysis */
+.mtabs{margin:4px 0 2px}
+.qcard{display:flex;flex-direction:column;border:1.5px solid var(--line);border-radius:4px;background:var(--surface);padding:2px 14px}
+.qrow{display:flex;justify-content:space-between;gap:14px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--line)}
+.qrow:last-child{border-bottom:0}
+.qk{font:700 12px var(--font-display);font-stretch:80%;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.qv{font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere}
+table.st td:first-child{font-weight:600}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.mps{display:flex;align-items:center;gap:10px 14px;flex-wrap:wrap;padding:12px 14px;border-radius:4px;background:var(--accent-soft);border:1.5px solid var(--hi)}
+.mps b{font:800 30px var(--font-display);font-stretch:112%;font-variant-numeric:tabular-nums}
+.mbtns{display:flex;flex-direction:column;border-top:1.5px solid var(--ink)}
+.mbtn{appearance:none;position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;width:100%;padding:14px 40px 14px 4px;min-height:60px;border:0;border-bottom:1px solid var(--line);background:none;color:var(--ink);cursor:pointer;font-family:var(--font-body)}
+.mbtn::after{content:"\203A";position:absolute;right:10px;top:50%;transform:translateY(-50%);font:400 26px var(--font-body);color:var(--muted)}
+.mbtn:hover{background:var(--accent-soft)}
+.mbtn b{font:700 17px var(--font-display);font-stretch:105%;color:var(--ink)}
+.mbtn span{font-size:14px;color:var(--muted)}
+.ialist{display:flex;flex-direction:column;border-top:1.5px solid var(--ink)}
+.ia2{display:grid;grid-template-columns:34px auto 1fr;gap:6px 12px;align-items:end;padding:12px 0;border-bottom:1px solid var(--line)}
+.ia2n{font:600 13px var(--font-mono);color:var(--muted);text-align:right;align-self:start;padding-top:6px}
+.ia2p{font:800 26px var(--font-display);font-stretch:110%;font-variant-numeric:tabular-nums;align-self:start;min-width:64px}
+.bars{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.bcol{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:28px}
+.bb{height:44px;width:22px;display:flex;align-items:flex-end;border-radius:2px;background:var(--soft);overflow:hidden}
+.bb i{display:block;width:100%;background:var(--bad)}
+.bcol.key .bb i{background:var(--good)}
+.bc{font:600 12px var(--font-mono)}
+.bl{font:600 12px var(--font-mono);color:var(--muted)}
+.bcol.key .bl{color:var(--good)}
+.ia2m{grid-column:2/4;display:flex;gap:6px 14px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.ia2m b{color:var(--ink)}
+.how{font-size:14px}.how summary{cursor:pointer;color:var(--ink);font-weight:700;padding:4px 0;text-decoration:underline;text-decoration-color:var(--hi);text-decoration-thickness:3px;text-underline-offset:3px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px}
+.item:hover{background:var(--accent-soft)}
+/* student sheet header and pinned navigation */
+.sheethead{display:flex;flex-direction:column;gap:14px;padding:16px;border:1.5px solid var(--ink);border-radius:4px;background:var(--surface)}
+.sheethead .cap{font:700 12px var(--font-display);font-stretch:80%;text-transform:uppercase;letter-spacing:.1em;color:var(--muted)}
+.rules li::marker{color:var(--muted)}
+.is-student .srow{position:sticky;bottom:0;z-index:4;background:var(--bg);padding-block:12px calc(12px + env(safe-area-inset-bottom,0px));border-top:1.5px solid var(--line);align-items:center}
+.stu #s-go{min-width:180px}
+.stu > div > h1{font-size:30px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+<div class="wrap"><div id="app"></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script id="pm-omr">
+/* SnapGrade sheet geometry and scanner. Pure functions, no DOM, so it can be tested in Node. */
+var PM = (function () {
+  'use strict';
+  // Template units are millimetres. Origin is the centre of the big top-left corner square.
+  var W = 180, H = 250;      // distance between corner square centres
+  var PAD = 8, S = 4;        // warped image: margin in mm, pixels per mm
+  var R = 2.6, RID = 1.9;    // answer bubble and ID bubble radius
+  var BIG = 12, SMALL = 8;   // corner square sizes
+  var Q0 = 84, QP = 7, CP = 54, BX0 = 12, BDX = 8;
+  var ID_RIGHT = 172, ID_PX = 5.8, ID_Y0 = 22, ID_PY = 4.8;
+  var LET = 'ABCDE';
+
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+  function formatFor(n) { return n <= 15 ? 15 : n <= 20 ? 20 : n <= 30 ? 30 : 60; }
+
+  function layout(n, k, idLen) {
+    n = clamp(n | 0, 1, 60); k = clamp(k | 0, 2, 5); idLen = clamp(idLen | 0, 4, 12);
+    var fmt = formatFor(n);
+    var cols = fmt <= 20 ? 1 : fmt === 30 ? 2 : 3;
+    var rows = fmt === 15 ? 15 : fmt === 20 ? 20 : fmt === 30 ? 15 : 20;
+    var startX = (W - ((cols - 1) * CP + 47)) / 2;
+    var qs = [], letters = [], idCols = [], i, c, d, col, r, x0, y, bs;
+    for (i = 0; i < n; i++) {
+      col = Math.floor(i / rows); r = i % rows;
+      x0 = startX + col * CP; y = Q0 + r * QP; bs = [];
+      for (c = 0; c < k; c++) bs.push({ c: LET[c], x: x0 + BX0 + c * BDX, y: y });
+      qs.push({ i: i, n: i + 1, numX: x0 + 6, y: y, b: bs });
+    }
+    for (col = 0; col < cols; col++) {
+      x0 = startX + col * CP;
+      for (c = 0; c < k; c++) letters.push({ t: LET[c], x: x0 + BX0 + c * BDX, y: Q0 - 7 });
+    }
+    for (i = 0; i < idLen; i++) {
+      var x = ID_RIGHT - (idLen - i - 0.5) * ID_PX, ds = [];
+      for (d = 0; d < 10; d++) ds.push({ d: d, x: x, y: ID_Y0 + d * ID_PY });
+      idCols.push({ x: x, b: ds });
+    }
+    return {
+      n: n, k: k, idLen: idLen, fmt: fmt, cols: cols, rows: rows, W: W, H: H, R: R, RID: RID,
+      qs: qs, letters: letters, idCols: idCols, idPx: ID_PX, idLeft: ID_RIGHT - idLen * ID_PX,
+      markers: [
+        { id: 'TL', x: 0, y: 0, s: BIG }, { id: 'TR', x: W, y: 0, s: SMALL },
+        { id: 'BR', x: W, y: H, s: SMALL }, { id: 'BL', x: 0, y: H, s: SMALL }
+      ]
+    };
+  }
+
+  // Darkness 0..255 relative to the local paper level, so shadows and gradients do not matter.
+  function flatten(g, w, h, rad) {
+    var W1 = w + 1, I = new Float64Array(W1 * (h + 1)), x, y, row;
+    for (y = 0; y < h; y++) {
+      row = 0;
+      for (x = 0; x < w; x++) { row += g[y * w + x]; I[(y + 1) * W1 + x + 1] = I[y * W1 + x + 1] + row; }
+    }
+    var out = new Uint8Array(w * h);
+    for (y = 0; y < h; y++) {
+      var y0 = Math.max(0, y - rad), y1 = Math.min(h, y + rad + 1);
+      for (x = 0; x < w; x++) {
+        var x0 = Math.max(0, x - rad), x1 = Math.min(w, x + rad + 1);
+        var sum = I[y1 * W1 + x1] - I[y0 * W1 + x1] - I[y1 * W1 + x0] + I[y0 * W1 + x0];
+        var bg = sum / ((x1 - x0) * (y1 - y0));
+        var v = bg > 1 ? 255 * (1 - g[y * w + x] / bg) : 0;
+        out[y * w + x] = v < 0 ? 0 : v > 255 ? 255 : v;
+      }
+    }
+    return out;
+  }
+
+  function components(bin, w, h, minArea) {
+    var lab = new Uint8Array(w * h), stack = new Int32Array(w * h), out = [];
+    var i, p, sp, area, minx, maxx, miny, maxy, sx, sy, x, y;
+    for (i = 0; i < w * h; i++) {
+      if (!bin[i] || lab[i]) continue;
+      sp = 0; stack[sp++] = i; lab[i] = 1;
+      area = 0; minx = w; maxx = 0; miny = h; maxy = 0; sx = 0; sy = 0;
+      while (sp) {
+        p = stack[--sp]; x = p % w; y = (p - x) / w;
+        area++; sx += x; sy += y;
+        if (x < minx) minx = x; if (x > maxx) maxx = x;
+        if (y < miny) miny = y; if (y > maxy) maxy = y;
+        if (x > 0 && bin[p - 1] && !lab[p - 1]) { lab[p - 1] = 1; stack[sp++] = p - 1; }
+        if (x < w - 1 && bin[p + 1] && !lab[p + 1]) { lab[p + 1] = 1; stack[sp++] = p + 1; }
+        if (y > 0 && bin[p - w] && !lab[p - w]) { lab[p - w] = 1; stack[sp++] = p - w; }
+        if (y < h - 1 && bin[p + w] && !lab[p + w]) { lab[p + w] = 1; stack[sp++] = p + w; }
+      }
+      if (area >= minArea) out.push({ area: area, minx: minx, maxx: maxx, miny: miny, maxy: maxy, cx: sx / area, cy: sy / area });
+    }
+    return out;
+  }
+
+  function dist(p, q) { return Math.hypot(p.cx - q.cx, p.cy - q.cy); }
+
+  // s is sorted by area, largest first. The largest is the big top-left square.
+  function quad(s) {
+    var L = s[0], O = [s[1], s[2], s[3]];
+    if (L.area < 1.2 * O[0].area) return null;
+    if (O[2].area < 0.45 * O[0].area) return null;
+    var mx = (s[0].cx + s[1].cx + s[2].cx + s[3].cx) / 4, my = (s[0].cy + s[1].cy + s[2].cy + s[3].cy) / 4;
+    var TAU = 2 * Math.PI, aL = Math.atan2(L.cy - my, L.cx - mx);
+    function off(c) { return (Math.atan2(c.cy - my, c.cx - mx) - aL + 2 * TAU) % TAU; }
+    var rest = O.slice().sort(function (p, q) { return off(p) - off(q); });
+    var P = [L, rest[0], rest[1], rest[2]], k;
+    for (k = 0; k < 4; k++) {
+      var p0 = P[k], p1 = P[(k + 1) % 4], p2 = P[(k + 2) % 4];
+      if ((p1.cx - p0.cx) * (p2.cy - p1.cy) - (p1.cy - p0.cy) * (p2.cx - p1.cx) <= 0) return null;
+    }
+    var a1 = dist(P[0], P[1]), b1 = dist(P[1], P[2]), c1 = dist(P[2], P[3]), d1 = dist(P[3], P[0]);
+    var ratio = (a1 + c1) / (b1 + d1);
+    if (ratio < 0.45 || ratio > 1.1) return null;
+    var rw = Math.min(a1, c1) / Math.max(a1, c1), rh = Math.min(b1, d1) / Math.max(b1, d1);
+    if (rw < 0.55 || rh < 0.55) return null;
+    return {
+      pts: P.map(function (c) { return [c.cx, c.cy]; }),
+      score: (L.area + O[0].area + O[1].area + O[2].area) * rw * rh
+    };
+  }
+
+  function findMarkers(g, w, h) {
+    var side = Math.max(w, h), i;
+    var dk = flatten(g, w, h, Math.round(side / 22));
+    var bin = new Uint8Array(w * h);
+    for (i = 0; i < bin.length; i++) bin[i] = dk[i] > 140 ? 1 : 0;
+    var minS = side * 0.010, maxS = side * 0.16;
+    var cs = components(bin, w, h, minS * minS * 0.4).filter(function (c) {
+      var bw = c.maxx - c.minx + 1, bh = c.maxy - c.miny + 1;
+      if (bw < minS || bh < minS || bw > maxS || bh > maxS) return false;
+      if (c.minx < 1 || c.miny < 1 || c.maxx > w - 2 || c.maxy > h - 2) return false;
+      var asp = bw / bh;
+      if (asp < 0.5 || asp > 2) return false;
+      return c.area / (bw * bh) > 0.45;
+    });
+    cs.sort(function (a, b) { return b.area - a.area; });
+    cs = cs.slice(0, 8);
+    var best = null, a, b, c, d;
+    for (a = 0; a < cs.length; a++) for (b = a + 1; b < cs.length; b++) for (c = b + 1; c < cs.length; c++) for (d = c + 1; d < cs.length; d++) {
+      var q = quad([cs[a], cs[b], cs[c], cs[d]]);
+      if (q && (!best || q.score > best.score)) best = q;
+    }
+    if (!best) return { ok: false, err: 'markers', found: cs.length };
+    return { ok: true, pts: best.pts };
+  }
+
+  // Solve for the 3x3 matrix (h8 = 1) taking four src points to four dst points.
+  function homography(src, dst) {
+    var A = [], b = [], i, r, c, k, f;
+    for (i = 0; i < 4; i++) {
+      var x = src[i][0], y = src[i][1], u = dst[i][0], v = dst[i][1];
+      A.push([x, y, 1, 0, 0, 0, -u * x, -u * y]); b.push(u);
+      A.push([0, 0, 0, x, y, 1, -v * x, -v * y]); b.push(v);
+    }
+    for (c = 0; c < 8; c++) {
+      var piv = c, t;
+      for (r = c + 1; r < 8; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r;
+      t = A[c]; A[c] = A[piv]; A[piv] = t; t = b[c]; b[c] = b[piv]; b[piv] = t;
+      for (r = c + 1; r < 8; r++) {
+        f = A[r][c] / A[c][c];
+        for (k = c; k < 8; k++) A[r][k] -= f * A[c][k];
+        b[r] -= f * b[c];
+      }
+    }
+    var hm = new Array(8);
+    for (r = 7; r >= 0; r--) {
+      var s = b[r];
+      for (k = r + 1; k < 8; k++) s -= A[r][k] * hm[k];
+      hm[r] = s / A[r][r];
+    }
+    return hm;
+  }
+
+  // Resample the photo into flat template space.
+  function warp(g, w, h, hm) {
+    var ow = Math.round((W + 2 * PAD) * S), oh = Math.round((H + 2 * PAD) * S);
+    var out = new Uint8Array(ow * oh), u, v;
+    for (v = 0; v < oh; v++) {
+      var ty = v / S - PAD;
+      for (u = 0; u < ow; u++) {
+        var tx = u / S - PAD, den = hm[6] * tx + hm[7] * ty + 1;
+        var x = (hm[0] * tx + hm[1] * ty + hm[2]) / den, y = (hm[3] * tx + hm[4] * ty + hm[5]) / den;
+        if (x < 0 || y < 0 || x >= w - 1 || y >= h - 1) { out[v * ow + u] = 255; continue; }
+        var xi = x | 0, yi = y | 0, fx = x - xi, fy = y - yi, p = yi * w + xi;
+        out[v * ow + u] = g[p] * (1 - fx) * (1 - fy) + g[p + 1] * fx * (1 - fy) + g[p + w] * (1 - fx) * fy + g[p + w + 1] * fx * fy;
+      }
+    }
+    return { data: out, w: ow, h: oh };
+  }
+
+  function diskMean(d, w, h, cx, cy, rad) {
+    var x0 = Math.max(0, Math.floor(cx - rad)), x1 = Math.min(w - 1, Math.ceil(cx + rad));
+    var y0 = Math.max(0, Math.floor(cy - rad)), y1 = Math.min(h - 1, Math.ceil(cy + rad));
+    var s = 0, n = 0, r2 = rad * rad, x, y;
+    for (y = y0; y <= y1; y++) for (x = x0; x <= x1; x++) {
+      var dx = x - cx, dy = y - cy;
+      if (dx * dx + dy * dy <= r2) { s += d[y * w + x]; n++; }
+    }
+    return n ? s / (n * 255) : 0;
+  }
+
+  // m: index of the single marked option, '' for blank, '*' for several or everything filled.
+  function decide(sc, thr) {
+    var mn = Math.min.apply(null, sc), mx = 0, i, adj = [];
+    for (i = 0; i < sc.length; i++) { adj.push(sc[i] - mn); if (adj[i] > mx) mx = adj[i]; }
+    if (mn > 0.30) return { m: '*', adj: adj };
+    if (mx < thr) return { m: '', adj: adj };
+    var cut = Math.max(thr, 0.6 * mx), hits = [];
+    for (i = 0; i < adj.length; i++) if (adj[i] >= cut) hits.push(i);
+    return hits.length === 1 ? { m: hits[0], adj: adj } : { m: '*', adj: adj };
+  }
+
+  function scan(g, w, h, lay, opts) {
+    var thr = (opts && opts.thr) || 0.18;
+    var f = findMarkers(g, w, h);
+    if (!f.ok) return f;
+    var hm = homography([[0, 0], [W, 0], [W, H], [0, H]], f.pts);
+    var wp = warp(g, w, h, hm);
+    var dk = flatten(wp.data, wp.w, wp.h, 48);
+    function sample(b, r) { return diskMean(dk, wp.w, wp.h, (b.x + PAD) * S, (b.y + PAD) * S, r * S * 0.6); }
+    var answers = [], fills = [], marked = 0, i, dres;
+    for (i = 0; i < lay.qs.length; i++) {
+      dres = decide(lay.qs[i].b.map(function (b) { return sample(b, R); }), thr);
+      fills.push(dres.adj);
+      answers.push(dres.m === '*' ? '*' : dres.m === '' ? '' : LET[dres.m]);
+      if (dres.m !== '') marked++;
+    }
+    var idStr = '';
+    for (i = 0; i < lay.idCols.length; i++) {
+      dres = decide(lay.idCols[i].b.map(function (b) { return sample(b, RID); }), Math.max(thr, 0.15));
+      idStr += dres.m === '*' ? '*' : dres.m === '' ? '_' : String(dres.m);
+    }
+    return { ok: true, warp: wp, pts: f.pts, answers: answers, fills: fills, idStr: idStr, marked: marked };
+  }
+
+  function right(it, a) { return !!it.bonus || (!!a && a !== '*' && a === it.a); }
+
+  // ans: array of '', '*' or a letter per item. Items may carry pts and bonus (credit to everyone).
+  function grade(exam, ans) {
+    var earned = 0, total = 0, correct = 0, i;
+    for (i = 0; i < exam.items.length; i++) {
+      var it = exam.items[i], p = it.pts > 0 ? +it.pts : 1;
+      total += p;
+      if (right(it, ans[i])) { earned += p; correct++; }
+    }
+    return { earned: Math.round(earned * 100) / 100, total: Math.round(total * 100) / 100, correct: correct, n: exam.items.length };
+  }
+
+  // DepEd K-12 transmutation: 60 to 100 maps to 75 to 100 in steps of 1.60, below 60 maps to 60 to 74 in steps of 4.
+  function transmute(pct) {
+    var v = Math.round(clamp(+pct || 0, 0, 100) * 100);
+    if (v >= 10000) return 100;
+    if (v >= 6000) return 75 + Math.floor((v - 6000) / 160);
+    return 60 + Math.floor(v / 400);
+  }
+
+  function mean(a) { var t = 0, i; for (i = 0; i < a.length; i++) t += a[i]; return a.length ? t / a.length : 0; }
+  function median(a) {
+    var b = a.slice().sort(function (x, y) { return x - y; }), m = b.length >> 1;
+    return b.length ? (b.length % 2 ? b[m] : (b[m - 1] + b[m]) / 2) : 0;
+  }
+  function sdev(a) {   // sample standard deviation
+    if (a.length < 2) return null;
+    var m = mean(a), t = 0, i;
+    for (i = 0; i < a.length; i++) t += (a[i] - m) * (a[i] - m);
+    return Math.sqrt(t / (a.length - 1));
+  }
+  function summary(a) { return a.length ? { min: Math.min.apply(null, a), max: Math.max.apply(null, a), avg: mean(a), med: median(a), sd: sdev(a) } : null; }
+  function pearson(x, y) {
+    var n = x.length, mx = mean(x), my = mean(y), sxy = 0, sxx = 0, syy = 0, i;
+    if (n < 2) return null;
+    for (i = 0; i < n; i++) { sxy += (x[i] - mx) * (y[i] - my); sxx += (x[i] - mx) * (x[i] - mx); syy += (y[i] - my) * (y[i] - my); }
+    if (!sxx || !syy) return null;
+    return sxy / Math.sqrt(sxx * syy);
+  }
+
+  // Statistics and item analysis for a set of papers. answers: one array of '', '*' or letters per paper.
+  // p is the difficulty index (share who got the item right). df is the D.F.: the Pearson correlation between
+  // getting the item right and the total score, the same measure ZipGrade reports.
+  function analyze(exam, answers) {
+    var n = answers.length, scores = [], pcts = [], total = grade(exam, []).total, j;
+    for (j = 0; j < n; j++) { var g = grade(exam, answers[j]); scores.push(g.earned); pcts.push(total ? 100 * g.earned / total : 0); }
+    var items = exam.items.map(function (it, i) {
+      var counts = {}, blank = 0, hit = 0, x = [], k;
+      for (k = 0; k < n; k++) {
+        var a = answers[k][i];
+        if (!a || a === '*') blank++; else counts[a] = (counts[a] || 0) + 1;
+        if (right(it, a)) { hit++; x.push(1); } else x.push(0);
+      }
+      return { i: i, n: i + 1, right: hit, blank: blank, counts: counts, p: n ? hit / n : 0, df: pearson(x, scores) };
+    });
+    return { n: n, total: total, score: summary(scores), pct: summary(pcts), mps: n ? mean(pcts) : null, items: items };
+  }
+
+  function diffLabel(p) { return p <= 0.20 ? 'Very difficult' : p <= 0.40 ? 'Difficult' : p <= 0.60 ? 'Moderate' : p <= 0.80 ? 'Easy' : 'Very easy'; }
+  // DepEd mastery levels for a mean percentage score.
+  function mastery(m) {
+    return m >= 96 ? 'Mastered' : m >= 86 ? 'Closely approximating mastery' : m >= 66 ? 'Moving towards mastery' : m >= 35 ? 'Average mastery' : m >= 15 ? 'Low mastery' : m >= 5 ? 'Very low mastery' : 'Absolutely no mastery';
+  }
+
+  // Helvetica character widths for ASCII 32..126, per 1000 units. Used to centre and right-align text.
+  var HW = [278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,
+    667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,
+    556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584];
+  function tw(s) {
+    var t = 0, i, c;
+    for (i = 0; i < s.length; i++) { c = s.charCodeAt(i); t += (c >= 32 && c <= 126 ? HW[c - 32] : 556); }
+    return t / 1000;
+  }
+  function pdfEnc(s) {
+    var o = '', i, c;
+    s = String(s == null ? '' : s).replace(/[‘’]/g, "'").replace(/[“”]/g, '"').replace(/[–—]/g, '-');
+    for (i = 0; i < s.length; i++) {
+      c = s.charCodeAt(i);
+      o += ((c >= 32 && c <= 126) || (c >= 160 && c <= 255)) ? s.charAt(i) : (c < 32 ? ' ' : '?');
+    }
+    return o;
+  }
+
+  // One-page PDF of the answer sheet, written by hand so it works offline. Returns a Uint8Array.
+  function sheetPDF(lay, o) {
+    o = o || {};
+    var K = 72 / 25.4, pw = o.paper === 'letter' ? 612 : 595.276, ph = o.paper === 'letter' ? 792 : 841.89;
+    var ox = pw / 2 - lay.W * K / 2, ot = ph / 2 - lay.H * K / 2, out = [];
+    function f(n) { return String(Math.round(n * 100) / 100); }
+    function X(x) { return ox + x * K; }
+    function Y(y) { return ph - (ot + y * K); }
+    function gray(v) { out.push(f(v / 255) + ' g ' + f(v / 255) + ' G'); }
+    function lw(mm) { out.push(f(mm * K) + ' w'); }
+    function rect(x, y, w, h, fill) { out.push(f(X(x)) + ' ' + f(Y(y + h)) + ' ' + f(w * K) + ' ' + f(h * K) + ' re ' + (fill ? 'f' : 'S')); }
+    function line(x1, y1, x2, y2) { out.push(f(X(x1)) + ' ' + f(Y(y1)) + ' m ' + f(X(x2)) + ' ' + f(Y(y2)) + ' l S'); }
+    function circle(cx, cy, r) {
+      var x = X(cx), y = Y(cy), rr = r * K, c = 0.5523 * rr;
+      out.push([f(x + rr), f(y), 'm', f(x + rr), f(y + c), f(x + c), f(y + rr), f(x), f(y + rr), 'c',
+        f(x - c), f(y + rr), f(x - rr), f(y + c), f(x - rr), f(y), 'c',
+        f(x - rr), f(y - c), f(x - c), f(y - rr), f(x), f(y - rr), 'c',
+        f(x + c), f(y - rr), f(x + rr), f(y - c), f(x + rr), f(y), 'c S'].join(' '));
+    }
+    function text(s, x, y, size, opt) {
+      opt = opt || {};
+      s = pdfEnc(s);
+      var w = tw(s) * size, dx = opt.align === 'right' ? w : opt.align === 'center' ? w / 2 : 0;
+      out.push('BT /' + (opt.bold ? 'F2' : 'F1') + ' ' + f(size) + ' Tf ' + f(X(x) - dx) + ' ' + f(Y(y)) + ' Td (' + s.replace(/[\\()]/g, '\\$&') + ') Tj ET');
+    }
+
+    gray(0);
+    lay.markers.forEach(function (m) { rect(m.x - m.s / 2, m.y - m.s / 2, m.s, m.s, true); });
+    gray(20); text(String(o.title || 'Answer sheet').slice(0, 46), 12, 10, 12, { bold: true });
+    [['Name', 21], ['Section', 31], ['Date', 41]].forEach(function (r) {
+      gray(20); text(r[0], 12, r[1], 9);
+      gray(60); lw(0.25); line(28, r[1] + 0.8, Math.min(94, lay.idLeft - 6), r[1] + 0.8);
+    });
+    gray(110);
+    ['Use a dark pen or soft pencil.', 'Fill each bubble completely.', 'Erase fully to change an answer.', 'Keep the black corner squares clean.', 'Do not fold or crumple this sheet.']
+      .forEach(function (t, i) { text(t, 12, 52 + i * 3.1, 7.5); });
+    gray(60); text('STUDENT ID', lay.idLeft + 1, 12, 7, { bold: true });
+    lay.idCols.forEach(function (col) {
+      gray(60); lw(0.25); rect(col.x - lay.idPx / 2 + 0.3, 13.4, lay.idPx - 0.6, 5, false);
+      col.b.forEach(function (b) {
+        gray(40); lw(0.25); circle(b.x, b.y, lay.RID);
+        gray(150); text(String(b.d), b.x, b.y + 0.7, 5, { align: 'center' });
+      });
+    });
+    gray(60); text('ANSWERS', 12, 69.5, 8, { bold: true });
+    gray(80); lw(0.3); line(10, 72, 170, 72);
+    gray(110);
+    lay.letters.forEach(function (l) { text(l.t, l.x, l.y + 0.8, 7, { align: 'center' }); });
+    lay.qs.forEach(function (q) {
+      gray(30); text(String(q.n), q.numX, q.y + 1, 8, { bold: true, align: 'right' });
+      q.b.forEach(function (b) {
+        gray(40); lw(0.3); circle(b.x, b.y, lay.R);
+        gray(150); text(b.c, b.x, b.y + 0.9, 6.5, { align: 'center' });
+      });
+    });
+    gray(130); text(o.footer || '', 12, 240, 6.5);
+
+    var content = out.join('\n');
+    var objs = [
+      '<< /Type /Catalog /Pages 2 0 R >>',
+      '<< /Type /Pages /Kids [3 0 R] /Count 1 >>',
+      '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ' + f(pw) + ' ' + f(ph) + '] /Resources << /Font << /F1 5 0 R /F2 6 0 R >> >> /Contents 4 0 R >>',
+      '<< /Length ' + content.length + ' >>\nstream\n' + content + '\nendstream',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>',
+      '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'
+    ];
+    var pdf = '%PDF-1.4\n', offs = [], i;
+    objs.forEach(function (b, k) { offs.push(pdf.length); pdf += (k + 1) + ' 0 obj\n' + b + '\nendobj\n'; });
+    var xr = pdf.length;
+    pdf += 'xref\n0 ' + (objs.length + 1) + '\n0000000000 65535 f \n';
+    offs.forEach(function (n) { pdf += ('0000000000' + n).slice(-10) + ' 00000 n \n'; });
+    pdf += 'trailer\n<< /Size ' + (objs.length + 1) + ' /Root 1 0 R >>\nstartxref\n' + xr + '\n%%EOF\n';
+    var u8 = new Uint8Array(pdf.length);
+    for (i = 0; i < pdf.length; i++) u8[i] = pdf.charCodeAt(i) & 255;
+    return u8;
+  }
+
+  return {
+    W: W, H: H, PAD: PAD, S: S, R: R, RID: RID, LET: LET,
+    layout: layout, formatFor: formatFor, scan: scan, grade: grade, right: right, transmute: transmute, analyze: analyze, diffLabel: diffLabel, mastery: mastery, sheetPDF: sheetPDF, HW: HW,
+    flatten: flatten, findMarkers: findMarkers, homography: homography
+  };
+})();
+if (typeof module !== 'undefined') module.exports = PM;
+
+</script>
+<script id="pm-app">
+(function () {
+'use strict';
+/* ---------- shared helpers ---------- */
+const $ = (s, el) => (el || document).querySelector(s);
+const $$ = (s, el) => Array.prototype.slice.call((el || document).querySelectorAll(s));
+const ESC = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ESC[c]);
+const LET = 'ABCDE';
+const has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-4);
+const slug = s => String(s || 'exam').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'exam';
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage may be unavailable */ } }
+};
+function b64e(str) {
+  const bytes = new TextEncoder().encode(str);
+  let s = '';
+  bytes.forEach(b => { s += String.fromCharCode(b); });
+  return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+function b64d(b) {
+  b = b.replace(/-/g, '+').replace(/_/g, '/');
+  while (b.length % 4) b += '=';
+  const s = atob(b), arr = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) arr[i] = s.charCodeAt(i);
+  return new TextDecoder().decode(arr);
+}
+function crc(str) {
+  let c = -1;
+  for (let i = 0; i < str.length; i++) {
+    c ^= str.charCodeAt(i);
+    for (let k = 0; k < 8; k++) c = (c >>> 1) ^ (0xEDB88320 & -(c & 1));
+  }
+  return ((~c) >>> 0).toString(36);
+}
+function toast(msg) {
+  const t = $('#toast');
+  if (!t) return;
+  t.textContent = msg; t.hidden = false;
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => { t.hidden = true; }, 4200);
+}
+function fmtTime(sec) {
+  sec = Math.max(0, Math.round(sec));
+  return Math.floor(sec / 60) + ':' + String(sec % 60).padStart(2, '0');
+}
+function copyText(text, el) {
+  return (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(text) : Promise.reject())
+    .then(() => true)
+    .catch(() => { if (el && el.select) { el.focus(); el.select(); } return false; });
+}
+const tick = () => new Promise(r => setTimeout(r, 40));
+
+/* ---------- student exam page ---------- */
+async function student(token) {
+  const app = $('#app');
+  document.body.classList.add('is-student');
+  app.innerHTML = '<div class="stu"><p class="muted">Loading exam…</p></div>';
+  let ex;
+  try {
+    if (window.__PM_EXAM) ex = window.__PM_EXAM;
+    else {
+      const r = await fetch('/_blob/' + token.slice(1), { cache: 'no-store' });
+      if (!r.ok) throw new Error('http');
+      ex = await r.json();
+    }
+    if (!ex || !Array.isArray(ex.items) || !ex.items.length) throw new Error('bad');
+  } catch (e) {
+    app.innerHTML = '<div class="stu"><h1>This exam link is not working</h1><p class="muted">It may be closed, or the link was copied incompletely. Ask your teacher to send it again.</p></div>';
+    return;
+  }
+  const N = ex.items.length, KEY = 'pm-attempt-' + (token || ('f' + ex.id + (ex.sig || '')));
+  let A = LS.get(KEY, null);
+  let awayAt = null, awayWhy = '', timerId = null, running = false;
+  const save = () => LS.set(KEY, A);
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); const t = a[i]; a[i] = a[j]; a[j] = t; } return a; };
+  const answered = () => A.ans.filter(v => v >= 0).length;
+  const flagged = () => A.order.map((o, p) => (A.fl[o] ? p + 1 : 0)).filter(Boolean);
+
+  function intro() {
+    const mins = ex.minutes | 0;
+    app.innerHTML = `<div class="stu">
+      <div><h1>${esc(ex.title)}</h1>${ex.subject ? `<p class="muted">${esc(ex.subject)}</p>` : ''}</div>
+      ${ex.instructions ? `<p>${esc(ex.instructions)}</p>` : ''}
+      <ul class="rules">
+        <li>${N} question${N === 1 ? '' : 's'}${mins ? `, ${mins} minute${mins === 1 ? '' : 's'}. The exam submits itself when time runs out.` : ', no time limit.'}</li>
+        <li>Stay on this page. Opening another tab, window or app is recorded and your teacher can see it.</li>
+        ${ex.maxAway > 0 ? `<li>After ${ex.maxAway} time${ex.maxAway === 1 ? '' : 's'} away, the exam submits itself.</li>` : ''}
+        <li>Your score is not shown here. At the end you get a code to send to your teacher.</li>
+      </ul>
+      <div class="sheethead"><span class="cap">Fill in before you start</span>
+      <label class="f">Full name<input id="s-name" autocomplete="name" maxlength="80"></label>
+      <div class="grid2">
+        <label class="f">Student ID <span class="opt">optional</span><input id="s-id" inputmode="numeric" maxlength="20"></label>
+        <label class="f">Section <span class="opt">optional</span><input id="s-sec" maxlength="30"></label>
+      </div></div>
+      <div><button class="btn primary" id="s-go" disabled>Start exam</button></div>
+    </div>`;
+    const name = $('#s-name'), go = $('#s-go');
+    name.addEventListener('input', () => { go.disabled = name.value.trim().length < 2; });
+    go.addEventListener('click', () => begin(name.value.trim(), $('#s-id').value.trim(), $('#s-sec').value.trim()));
+    name.focus();
+  }
+
+  function begin(name, sid, section) {
+    const order = ex.items.map((_, i) => i);
+    if (ex.shuffleQ) shuffle(order);
+    const corder = ex.items.map(it => { const p = it.c.map((_, j) => j); return ex.shuffleC ? shuffle(p) : p; });
+    A = { v: 1, name, sid, section, order, corder, ans: new Array(N).fill(-1), fl: new Array(N).fill(false), start: Date.now(), ev: [], cp: 0, cur: 0 };
+    save(); run();
+  }
+
+  function run() {
+    if (!Array.isArray(A.fl)) A.fl = new Array(N).fill(false);
+    running = true;
+    shell();
+    renderQ();
+    tickTimer();
+    timerId = setInterval(tickTimer, 1000);
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onBack);
+    window.addEventListener('pagehide', onHide);
+    document.addEventListener('contextmenu', blockMenu);
+    document.addEventListener('copy', onCopy);
+  }
+
+  function stop() {
+    running = false;
+    clearInterval(timerId);
+    document.removeEventListener('visibilitychange', onVis);
+    window.removeEventListener('blur', onBlur);
+    window.removeEventListener('focus', onBack);
+    window.removeEventListener('pagehide', onHide);
+    document.removeEventListener('contextmenu', blockMenu);
+    document.removeEventListener('copy', onCopy);
+    const o = $('#awayov'); if (o) o.remove();
+  }
+
+  /* Away detection: one event per stretch where the page is hidden or loses focus. */
+  function leave(why) {
+    if (!running) return;
+    if (!awayAt) { awayAt = Date.now(); awayWhy = why; }
+    else if (why === 'h') awayWhy = 'h';
+  }
+  function onVis() { if (document.hidden) leave('h'); else onBack(); }
+  function onBlur() { leave('b'); }
+  function onHide() { leave('h'); }
+  function onBack() {
+    if (!running || !awayAt) return;
+    if (document.hidden || (document.hasFocus && !document.hasFocus())) return;
+    const dur = Date.now() - awayAt, why = awayWhy, at = awayAt;
+    awayAt = null; awayWhy = '';
+    if (why === 'b' && dur < 1500) return;          // a quick click outside the page is not a tab switch
+    A.ev.push([Math.round((at - A.start) / 1000), Math.round(dur / 1000), why]);
+    save();
+    updateAwayBadge();
+    if (ex.maxAway > 0 && A.ev.length >= ex.maxAway) { finish('away'); return; }
+    showAway();
+  }
+  function blockMenu(e) { e.preventDefault(); }
+  function onCopy(e) { e.preventDefault(); A.cp++; save(); }
+
+  function showAway() {
+    let o = $('#awayov');
+    if (!o) { o = document.createElement('div'); o.id = 'awayov'; o.className = 'awayov'; document.body.appendChild(o); }
+    const n = A.ev.length, left = ex.maxAway > 0 ? ex.maxAway - n : 0;
+    o.innerHTML = `<div class="awaybox" role="alertdialog" aria-label="You left the exam page">
+      <h2>You left the exam page</h2>
+      <p>This was recorded (${n} so far) and your teacher will see it.${left > 0 ? ` <b>${left} more and the exam submits automatically.</b>` : ''}</p>
+      <button class="btn primary" id="away-ok">Back to the exam</button></div>`;
+    o.hidden = false;
+    $('#away-ok').addEventListener('click', () => { o.remove(); });
+  }
+
+  function shell() {
+    app.innerHTML = `<div class="stu">
+      <div class="sbar"><div><b>${esc(ex.title)}</b><div class="muted" style="font-size:13px">${esc(A.name)}</div></div><div class="timer" id="timer"></div></div>
+      <div class="prog" aria-hidden="true"><i id="prog"></i></div>
+      <div id="qa"></div>
+      <div class="qmap" id="qmap" role="group" aria-label="Question map"></div>
+      <div class="srow"><div class="row"><button class="btn" id="prev">Back</button><button class="btn" id="next">Next</button></div>
+        <button class="btn primary" id="submit">Review and submit</button></div>
+      <div id="away-n" class="hint"></div>
+    </div>`;
+    $('#prev').addEventListener('click', () => go(A.cur - 1));
+    $('#next').addEventListener('click', () => go(A.cur + 1));
+    $('#submit').addEventListener('click', confirmSubmit);
+    $('#qa').addEventListener('click', e => {
+      const oi = A.order[A.cur];
+      if (e.target.closest('[data-flag]')) { A.fl[oi] = !A.fl[oi]; save(); renderQ(); return; }
+      const b = e.target.closest('[data-j]');
+      if (!b) return;
+      const orig = A.corder[oi][+b.dataset.j];
+      A.ans[oi] = A.ans[oi] === orig ? -1 : orig;
+      save(); renderQ();
+    });
+    $('#qmap').addEventListener('click', e => { const b = e.target.closest('[data-q]'); if (b) go(+b.dataset.q); });
+    updateAwayBadge();
+  }
+
+  function go(i) { A.cur = Math.max(0, Math.min(N - 1, i)); save(); renderQ(); }
+
+  function renderQ() {
+    const oi = A.order[A.cur], it = ex.items[oi], perm = A.corder[oi], fl = !!A.fl[oi];
+    $('#qa').innerHTML = `<div class="qh">Question ${A.cur + 1} of ${N}</div>
+      <p class="qtext">${esc(it.q)}</p>
+      <div class="choices">${perm.map((orig, j) => `<button class="choice" data-j="${j}" aria-pressed="${A.ans[oi] === orig}"><span class="bub sm" aria-hidden="true">${LET[j]}</span><span>${esc(it.c[orig])}</span></button>`).join('')}</div>
+      <div><button class="btn ghost" data-flag="1" aria-pressed="${fl}">${fl ? 'Marked for later. Tap to unmark' : 'Mark for later'}</button></div>`;
+    $('#qmap').innerHTML = A.order.map((o, p) => `<button class="qm${A.ans[o] >= 0 ? ' done' : ''}${A.fl[o] ? ' fl' : ''}${p === A.cur ? ' cur' : ''}" data-q="${p}" aria-label="Question ${p + 1}${A.ans[o] >= 0 ? ', answered' : ''}${A.fl[o] ? ', marked for later' : ''}">${p + 1}</button>`).join('');
+    $('#prog').style.width = Math.round(100 * answered() / N) + '%';
+    $('#prev').disabled = A.cur === 0;
+    $('#next').disabled = A.cur === N - 1;
+  }
+
+  function updateAwayBadge() {
+    const el = $('#away-n');
+    if (el) el.textContent = A.ev.length ? `Times you left this page: ${A.ev.length}` : '';
+  }
+
+  function tickTimer() {
+    const t = $('#timer');
+    if (!t) return;
+    if (!(ex.minutes > 0)) { t.textContent = ''; return; }
+    const left = Math.round((A.start + ex.minutes * 60000 - Date.now()) / 1000);
+    t.textContent = fmtTime(left);
+    t.classList.toggle('low', left <= 60);
+    if (left <= 0) finish('time');
+  }
+
+  function confirmSubmit() {
+    const un = N - answered(), fl = flagged();
+    $('#qa').innerHTML = `<h2>Ready to submit?</h2>
+      <p>${un ? `You have ${un} unanswered question${un === 1 ? '' : 's'}. Tap a number below to go back.` : 'You answered every question.'}</p>
+      ${fl.length ? `<p class="note warn">You marked ${fl.length === 1 ? 'question' : 'questions'} ${fl.join(', ')} for later.</p>` : ''}
+      <div class="row"><button class="btn primary" id="yes">Submit exam</button><button class="btn" id="no">Keep working</button></div>`;
+    $('#yes').addEventListener('click', () => finish('done'));
+    $('#no').addEventListener('click', renderQ);
+  }
+
+  function finish(reason) {
+    if (A.code) return;
+    stop();
+    const payload = {
+      v: 1, x: ex.id, n: A.name, i: A.sid, s: A.section,
+      a: A.ans.map(v => v < 0 ? '-' : LET[v]).join(''),
+      w: A.ev, cp: A.cp, t: Math.round((Date.now() - A.start) / 1000), ts: Date.now(), r: reason
+    };
+    const b = b64e(JSON.stringify(payload));
+    A.code = 'PM1.' + b + '.' + crc(b); A.reason = reason;
+    save(); done();
+  }
+
+  function done() {
+    const why = { time: 'Time ran out, so your exam was submitted.', away: 'Your exam was submitted because you left the page too many times.', done: 'Your answers are saved.' }[A.reason] || 'Your answers are saved.';
+    app.innerHTML = `<div class="stu">
+      <h1>Exam finished</h1>
+      <p>${why} Send the code below to your teacher exactly as it appears. Taking a screenshot of this screen is a good backup.</p>
+      <textarea class="code" id="code" readonly rows="5" aria-label="Your submission code">${esc(A.code)}</textarea>
+      <div class="row"><button class="btn primary" id="copy">Copy code</button><span class="hint" id="copied"></span></div>
+      <p class="hint">${esc(A.name)}${A.ev.length ? ` · left the page ${A.ev.length} time${A.ev.length === 1 ? '' : 's'}` : ''}</p>
+    </div>`;
+    $('#copy').addEventListener('click', async () => {
+      const ok = await copyText(A.code, $('#code'));
+      $('#copied').textContent = ok ? 'Copied.' : 'Select the code above and copy it.';
+    });
+  }
+
+  if (A && A.code) { done(); return; }
+  if (A && A.ans && A.ans.length === N) {
+    A.ev.push([Math.round((Date.now() - A.start) / 1000), 0, 'r']);   // page was reloaded mid-exam
+    save();
+    if (ex.maxAway > 0 && A.ev.length >= ex.maxAway) { finish('away'); return; }
+    run();
+    if (ex.minutes > 0) tickTimer();
+    return;
+  }
+  intro();
+}
+
+/* ---------- teacher workspace ---------- */
+const CACHE_KEY = 'pm-cache-v1', PEND_KEY = 'pm-pending-v1';
+const T = {
+  tab: 'exams', S: { exams: {}, results: {}, settings: {} }, mode: 'checking',
+  editing: null, menu: null, sub: '', mtab: 'details', open: {}, scans: [], scanExam: '', resExam: '', rowOpen: '', sort: 'name', warn: '', shrink: 0, importMsg: ''
+};
+let db = null, ASSETS = null, DL = null, saveTimer = null, flushing = false;
+
+/* storage: local copy first, synced to the database when it is reachable */
+const saveCache = () => LS.set(CACHE_KEY, T.S);
+const pending = () => LS.get(PEND_KEY, []);
+function put(col, id, data) {
+  if (data === null) delete T.S[col][id]; else T.S[col][id] = data;
+  saveCache();
+  const q = pending().filter(o => !(o.col === col && o.id === id));
+  q.push({ col, id, data });
+  LS.set(PEND_KEY, q);
+  syncChip();
+  flush();
+}
+async function flush() {
+  if (!db || flushing) return;
+  flushing = true;
+  try {
+    let q = pending();
+    while (q.length) {
+      const op = q[0], ref = db.doc(op.col + '/' + op.id), sig = JSON.stringify(op);
+      if (op.data === null) await ref.delete(); else await ref.set(op.data);
+      q = pending().filter(o => JSON.stringify(o) !== sig);
+      LS.set(PEND_KEY, q);
+      syncChip();
+    }
+  } catch (e) { /* stays queued, retried on the next change or when the connection returns */ }
+  flushing = false;
+  syncChip();
+}
+function subscribe() {
+  ['exams', 'results', 'settings'].forEach(col => {
+    db.collection(col).onSnapshot(snap => {
+      const m = {};
+      snap.docs.forEach(d => { m[d.id] = d.data(); });
+      pending().filter(o => o.col === col).forEach(o => { if (o.data === null) delete m[o.id]; else m[o.id] = o.data; });
+      if (col === 'exams' && T.editing && has(T.S.exams, T.editing)) m[T.editing] = T.S.exams[T.editing];
+      T.S[col] = m; saveCache();
+      if (!T.editing) render();
+      flush();
+    }, () => { syncChip(); });
+  });
+}
+function syncChip() {
+  const el = $('#sync');
+  if (!el) return;
+  const n = pending().length, online = navigator.onLine !== false;
+  let txt = 'Saved', warn = false;
+  if (T.mode === 'local' || !db) { txt = n ? n + ' waiting to sync' : 'This device only'; warn = true; }
+  else if (!online) { txt = n ? 'Offline, ' + n + ' waiting' : 'Offline'; warn = true; }
+  else if (n) txt = 'Syncing ' + n + '…';
+  el.textContent = txt; el.classList.toggle('warn', warn);
+}
+
+/* data helpers */
+const exams = () => Object.keys(T.S.exams).map(k => T.S.exams[k]).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+const getExam = id => (has(T.S.exams, id) ? T.S.exams[id] : null);
+const resultsOf = id => Object.keys(T.S.results).map(k => T.S.results[k]).filter(r => r.examId === id);
+const cfg = () => Object.assign({ paper: 'a4', idLen: 6, thr: 0.18, roster: '', base: '', scale: 'pct', pass: '' }, T.S.settings.app || {});
+const passMark = () => { const p = parseFloat(cfg().pass); return Number.isFinite(p) ? p : (cfg().scale === 'deped' ? 75 : 60); };
+const gradeOf = raw => (cfg().scale === 'deped' ? PM.transmute(raw) : Math.round(raw));
+const gradeName = () => (cfg().scale === 'deped' ? 'Grade' : 'Percent');
+const fmtGrade = v => (cfg().scale === 'deped' ? String(v) : v + '%');
+const okId = id => typeof id === 'string' && /^[A-Za-z0-9_-]{1,60}$/.test(id) && id !== '__proto__';
+const setCfg = p => put('settings', 'app', Object.assign({}, T.S.settings.app || {}, p));
+const blankItem = k => ({ q: '', c: new Array(k).fill(''), a: '', pts: 1 });
+function newExam(n) {
+  const id = uid();
+  return {
+    id, title: 'Untitled exam', subject: '', choices: 4, nItems: n, items: Array.from({ length: n }, () => blankItem(4)),
+    minutes: 0, shuffleQ: false, shuffleC: false, maxAway: 3, instructions: '', createdAt: Date.now(), updatedAt: Date.now(), pub: null
+  };
+}
+function touch(ex) {
+  ex.updatedAt = Date.now(); T.S.exams[ex.id] = ex; saveCache();
+  const s = $('#saved'); if (s) s.textContent = 'Saving…';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { put('exams', ex.id, ex); const s2 = $('#saved'); if (s2) s2.textContent = 'Saved'; }, 500);
+}
+function studentPayload(ex) {
+  return {
+    v: 1, id: ex.id, title: ex.title, subject: ex.subject, instructions: ex.instructions, minutes: ex.minutes | 0,
+    shuffleQ: !!ex.shuffleQ, shuffleC: !!ex.shuffleC, maxAway: ex.maxAway | 0, choices: ex.choices,
+    items: ex.items.map(it => ({ q: it.q, c: it.c.slice(0, ex.choices) }))
+  };
+}
+const sigOf = ex => crc(JSON.stringify(studentPayload(ex)));
+function rosterMap() {
+  const m = {};
+  String(cfg().roster).split('\n').forEach(line => {
+    const p = line.split(/[,\t]/).map(s => s.trim());
+    if (p[0] && p[1]) m[p[0]] = { name: p[1], section: p[2] || '' };
+  });
+  return m;
+}
+function rosterName(sid) {
+  const m = rosterMap();
+  if (!sid) return '';
+  if (has(m, sid)) return m[sid].name;
+  const z = sid.replace(/^0+/, '');
+  const hit = Object.keys(m).find(k => k.replace(/^0+/, '') === z);
+  return hit ? m[hit].name : '';
+}
+function rosterSection(sid) {
+  const m = rosterMap();
+  if (!sid) return '';
+  if (has(m, sid)) return m[sid].section;
+  const z = sid.replace(/^0+/, '');
+  const hit = Object.keys(m).find(k => k.replace(/^0+/, '') === z);
+  return hit ? m[hit].section : '';
+}
+const ansArr = (s, n) => { const a = String(s || '').split('').map(ch => (ch === '-' ? '' : ch)); while (a.length < n) a.push(''); return a; };
+
+/* ---------- views ---------- */
+function shellHTML() {
+  $('#app').innerHTML = `<div class="top">
+    <div class="brand"><div class="logo"><i aria-hidden="true"></i><span>Snap<b>Grade</b></span></div><span class="sync" id="sync"></span></div>
+    <div class="tabs" role="tablist">${[['exams', 'Exams'], ['scan', 'Scan'], ['results', 'Results'], ['settings', 'Settings']].map(t => `<button class="tab" role="tab" data-act="tab" data-t="${t[0]}" aria-selected="false">${t[1]}</button>`).join('')}</div>
+  </div><div id="view"></div>`;
+  syncChip();
+}
+function examsHTML() {
+  const list = exams();
+  const head = `<div class="head"><h1>Exams</h1><button class="btn primary" data-act="new-exam">New exam</button></div>`;
+  if (!list.length) {
+    return head + `<div class="empty"><h2>Start with the number of items</h2>
+      <p class="muted">Enter just the answer key for a printed test, or write full questions to give it online with a link. Both can be scanned from paper.</p>
+      <div class="presets">${[15, 20, 30, 60].map(n => `<button class="btn" data-act="new-exam" data-n="${n}">${n} items</button>`).join('')}</div></div>`;
+  }
+  return head + `<div class="list">${list.map(ex => {
+    const n = resultsOf(ex.id).length;
+    return `<button class="item" data-act="open-exam" data-id="${esc(ex.id)}"><span class="t">${esc(ex.title)}</span>
+      <span class="m">${ex.nItems} items · ${ex.choices} choices${ex.subject ? ' · ' + esc(ex.subject) : ''}</span>
+      <span class="r">${ex.pub ? '<span class="pill live">Link open</span>' : ''}<span class="pill">${n} result${n === 1 ? '' : 's'}</span></span></button>`;
+  }).join('')}</div>`;
+}
+function itemsHTML(ex) {
+  return ex.items.map((it, i) => {
+    const open = T.open[i];
+    const tags = (it.tag ? `<span class="pill">${esc(it.tag)}</span>` : '') + (it.bonus ? '<span class="pill warn">credit to all</span>' : '') + (it.pts > 0 && +it.pts !== 1 ? `<span class="pill">${+it.pts} pts</span>` : '');
+    return `<div class="krow"><span class="kn">${i + 1}</span>
+      <div class="kb">${LET.slice(0, ex.choices).split('').map(L => `<button class="bub" data-act="key" data-i="${i}" data-l="${L}" aria-pressed="${it.a === L}" aria-label="Item ${i + 1}, answer ${L}">${L}</button>`).join('')}${tags}</div>
+      <button class="link" data-act="open-item" data-i="${i}">${open ? 'Hide' : 'Question'}${it.q ? '<span class="dot"></span>' : ''}</button>
+      ${open ? `<div class="qfull"><textarea data-i="${i}" data-k="q" rows="2" placeholder="Question text, needed for online exams">${esc(it.q)}</textarea>
+        ${Array.from({ length: ex.choices }, (_, j) => `<label class="cl"><span class="bub sm">${LET[j]}</span><input data-i="${i}" data-c="${j}" value="${esc(it.c[j] || '')}" placeholder="Choice ${LET[j]}"></label>`).join('')}
+        <div class="row"><label class="cust">Points<input type="number" min="0.5" max="20" step="0.5" data-i="${i}" data-k="pts" value="${it.pts > 0 ? +it.pts : 1}"></label>
+        <label class="row"><input type="checkbox" data-i="${i}" data-k="bonus" ${it.bonus ? 'checked' : ''} style="width:auto"> Give credit to everyone</label></div>
+        <label class="f">Tag <span class="opt">optional, for the tag report</span><input data-i="${i}" data-k="tag" maxlength="30" value="${esc(it.tag || '')}" placeholder="Topic or skill, like Plate tectonics"></label></div>` : ''}</div>`;
+  }).join('');
+}
+function pubHTML(ex) {
+  const c = cfg();
+  const file = `<div class="row"><button class="btn" data-act="exam-file">${DL ? 'Download exam file' : 'Copy exam file'}</button></div>
+    <p class="hint">${DL ? 'Or send students one file that opens in any browser and works without internet. They still send you their code.' : 'Downloads are off in this view, so the exam file is copied instead. Paste it into Notepad, save it as a .html file, and send that to students. It works without internet, and they still send you their code.'}</p>
+    ${T.srcText ? `<label class="f">Exam file (copy everything below)<textarea class="code" id="src-box" rows="6" readonly>${esc(T.srcText)}</textarea></label><div class="row"><button class="btn" data-act="hide-src">Hide</button></div>` : ''}`;
+  if (!ex.pub) {
+    return `<p class="hint">Students open the link, answer on their own phone or laptop, and get a code to send you. The answer key stays in your account.</p>
+      <div class="row"><button class="btn primary" data-act="publish">Publish student link</button></div>
+      ${ASSETS ? '' : '<p class="note warn">Publishing needs you signed in to Claude as the owner of this page.</p>'}${file}`;
+  }
+  const stale = ex.pub.sig !== sigOf(ex);
+  const link = c.base ? c.base.replace(/#.*$/, '') + '#q' + ex.pub.assetId : '';
+  return `<p class="note good">The student link is open.</p>
+    ${stale ? '<p class="note warn">You changed the exam after publishing. Publish again to send the changes. The link will change.</p>' : ''}
+    ${link ? `<div class="linkbox"><input readonly id="plink" value="${esc(link)}" aria-label="Student link"><button class="btn" data-act="copy-link">Copy link</button></div>
+      <p class="hint">Students can only open it if this page is shared with anyone who has the link.</p>`
+      : `<p class="note warn">Paste your page link in Settings to get the full student link. Its ending is <span class="mono">#q${esc(ex.pub.assetId)}</span></p>`}
+    <div class="row"><button class="btn" data-act="publish">Publish changes</button><button class="btn danger" data-act="unpublish">Close link</button></div>${file}`;
+}
+function editorHTML() {
+  const ex = getExam(T.editing);
+  if (!ex) { T.editing = null; return examsHTML(); }
+  const std = [15, 20, 30, 60].indexOf(ex.nItems) >= 0;
+  return `<div class="head"><button class="btn ghost" data-act="close-editor">← Exam menu</button><span class="saved" id="saved">Saved</span></div>
+  <section class="blk">
+    <label class="f">Exam title<input data-f="title" value="${esc(ex.title)}" maxlength="80"></label>
+    <label class="f">Subject or topic <span class="opt">optional</span><input data-f="subject" value="${esc(ex.subject)}" maxlength="60"></label>
+  </section>
+  <section class="blk"><h2>Length and choices</h2>
+    <div class="seg" role="group" aria-label="Number of items">${[15, 20, 30, 60].map(n => `<button class="segb" data-act="set-n" data-n="${n}" aria-pressed="${ex.nItems === n}">${n}</button>`).join('')}
+      <label class="cust">Other<input type="number" min="1" max="60" id="f-n" value="${std ? '' : ex.nItems}" placeholder="1-60"></label></div>
+    ${T.warn ? `<p class="note warn">${esc(T.warn)}</p>` : ''}
+    <p class="hint">The printed sheet is the ${PM.formatFor(ex.nItems)}-item layout. Up to 60 items.</p>
+    <div class="seg" role="group" aria-label="Choices per item">${[2, 3, 4, 5].map(k => `<button class="segb" data-act="set-k" data-k="${k}" aria-pressed="${ex.choices === k}">${LET.slice(0, k)[0]}-${LET[k - 1]}</button>`).join('')}</div>
+  </section>
+  <section class="blk"><h2>Answer key</h2>
+    <p class="hint">Tap the right letter for each item, or type the whole key at once.</p>
+    <div class="row"><input class="mono" id="e-quick" placeholder="ABCDDABC…" style="flex:1 1 220px;width:auto" autocapitalize="characters" autocomplete="off"><button class="btn" data-act="apply-quick">Apply key</button></div>
+    <div id="items">${itemsHTML(ex)}</div>
+  </section>
+  <section class="blk"><h2>Paste questions</h2>
+    <p class="hint">Paste questions from a document. Format: a numbered question, choices on lines starting A. B. C. D., and an optional line like Answer: B. This replaces the items above.</p>
+    <textarea id="e-paste" rows="6" placeholder="1. What is the capital of France?&#10;A. Lyon&#10;B. Paris&#10;C. Nice&#10;D. Lille&#10;Answer: B"></textarea>
+    <div class="row"><button class="btn" data-act="parse-paste">Import questions</button><button class="btn" data-act="pick-qfile">Upload text file</button><input type="file" id="in-qfile" accept=".txt,.text,.md,.csv,text/plain" hidden><span class="hint" id="paste-msg"></span></div>
+    <p class="hint">A .txt file works best. For Word or PDF, copy the questions and paste them above.</p>
+  </section>
+  <section class="blk"><h2>Online exam settings</h2>
+    <div class="grid2">
+      <label class="f">Time limit in minutes <span class="opt">0 means none</span><input type="number" min="0" max="300" data-f="minutes" value="${ex.minutes | 0}"></label>
+      <label class="f">Submit after leaving the page <span class="opt">0 means never</span><input type="number" min="0" max="20" data-f="maxAway" value="${ex.maxAway | 0}"></label>
+    </div>
+    <label class="row"><input type="checkbox" data-f="shuffleQ" ${ex.shuffleQ ? 'checked' : ''} style="width:auto"> Shuffle question order for each student</label>
+    <label class="row"><input type="checkbox" data-f="shuffleC" ${ex.shuffleC ? 'checked' : ''} style="width:auto"> Shuffle choices for each student</label>
+    <p class="hint">Avoid shuffling choices if any question says "all of the above".</p>
+    <label class="f">Instructions for students <span class="opt">optional</span><textarea data-f="instructions" rows="2">${esc(ex.instructions)}</textarea></label>
+    <div id="pub">${pubHTML(ex)}</div>
+  </section>
+  <section class="blk"><h2>Answer sheet</h2>
+    <p class="hint">Prints on ${cfg().paper === 'letter' ? 'Letter' : 'A4'} paper with a ${cfg().idLen}-digit student ID grid. Change paper and ID length in Settings.</p>
+    <div class="row"><button class="btn primary" data-act="sheet-pdf">Download answer sheet (PDF)</button></div>
+  </section>
+  <section class="blk"><div class="row"><button class="btn danger" data-act="del-exam">Delete this exam</button></div></section>`;
+}
+
+function flagHTML(s) {
+  const multi = [], blank = [];
+  s.ans.forEach((a, i) => { if (a === '*') multi.push(i + 1); else if (!a) blank.push(i + 1); });
+  const list = a => a.slice(0, 10).join(', ') + (a.length > 10 ? '…' : '');
+  const parts = [];
+  if (multi.length) parts.push(`Double marks on ${list(multi)}. These count wrong until you tap the right bubble.`);
+  if (blank.length) parts.push(`Blank: ${list(blank)}.`);
+  return parts.length ? `<p class="note${multi.length ? ' warn' : ''}">${parts.join(' ')}</p>` : '';
+}
+function scanCard(s) {
+  const ex = getExam(s.examId);
+  if (s.state === 'saved') return `<div class="savedline"><span>${esc(s.label)}</span><span class="pill good">Saved</span></div>`;
+  if (s.state === 'reading') return `<div class="scan"><p class="muted">Reading ${esc(s.file)}…</p></div>`;
+  if (s.state === 'fail') return `<div class="scan"><header><b>${esc(s.file)}</b><button class="link" data-act="scan-drop" data-sid="${s.id}">Dismiss</button></header><p class="note bad">${esc(s.err)}</p></div>`;
+  const g = PM.grade(ex, s.ans);
+  const dup = findDup(s);
+  return `<article class="scan"><header><b>${esc(s.file)}</b><span class="pill" id="sc-${s.id}">${g.earned} / ${g.total}</span></header>
+    ${s.warnTxt ? `<p class="note warn">${esc(s.warnTxt)}</p>` : ''}
+    <div id="fl-${s.id}">${flagHTML(s)}</div>
+    <div class="scanrow"><div class="cvwrap"><canvas class="rcv" data-cv="${s.id}" aria-label="Scanned sheet. Tap a bubble to correct an answer."></canvas></div>
+    <div class="side">
+      <label class="f">Student ID<input class="mono" data-sf="sid" data-sid="${s.id}" value="${esc(s.sid)}" inputmode="numeric" placeholder="${esc(s.idHint)}"></label>
+      <label class="f">Name<input data-sf="name" data-sid="${s.id}" value="${esc(s.name)}" list="roster-names" autocomplete="off"></label>
+      <p class="hint">Tap any bubble on the sheet to correct it. Tap again to clear. Green is correct, red is wrong, a green ring marks the right answer.</p>
+      <div class="row"><button class="btn primary" data-act="scan-save" data-sid="${s.id}">${dup ? 'Replace earlier scan' : 'Save'}</button><button class="btn" data-act="scan-drop" data-sid="${s.id}">Discard</button></div>
+    </div></div></article>`;
+}
+function findDup(s) {
+  if (!s.sid) return null;
+  return resultsOf(s.examId).find(r => r.source === 'scan' && r.sid === s.sid) || null;
+}
+function scanHTML() {
+  const list = exams();
+  if (!list.length) return `<h1>Scan</h1><div class="empty"><p class="muted">Create an exam with an answer key first. Then print its answer sheet and scan the filled sheets here.</p></div>`;
+  if (!T.scanExam || !getExam(T.scanExam)) T.scanExam = list[0].id;
+  const ex = getExam(T.scanExam), miss = ex.items.map((it, i) => (it.a || it.bonus ? 0 : i + 1)).filter(Boolean);
+  const names = Object.keys(rosterMap()).map(k => rosterMap()[k].name);
+  const ready = T.scans.filter(s => s.state === 'ready').length;
+  return `<h1>Scan</h1>
+  <label class="f">Exam<select data-act="pick-exam" id="scan-exam">${list.map(e => `<option value="${esc(e.id)}"${e.id === T.scanExam ? ' selected' : ''}>${esc(e.title)} (${e.nItems} items)</option>`).join('')}</select></label>
+  ${miss.length ? `<p class="note warn">No answer key for item${miss.length === 1 ? '' : 's'} ${miss.slice(0, 12).join(', ')}${miss.length > 12 ? '…' : ''}. They will count as wrong.</p>` : ''}
+  <div class="drop">
+    <div class="row"><button class="btn primary" data-act="pick-cam">Take photo of a sheet</button><button class="btn" data-act="pick-file">Choose photos</button></div>
+    <p class="hint">Lay the sheet flat in good light. Keep all four black corner squares in the frame. The sheet can be turned any way. Choose many photos at once to scan a whole stack. Photos are read on this device and are not uploaded.</p>
+    <input type="file" id="in-cam" accept="image/*" capture="environment" hidden>
+    <input type="file" id="in-file" accept="image/*" multiple hidden>
+  </div>
+  <datalist id="roster-names">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+  ${ready > 1 ? `<div class="row"><button class="btn primary" data-act="scan-all">Save all ready (${ready})</button><span class="hint">Saves sheets with a full ID and no double marks. The rest stay here for you to check.</span></div>` : ''}
+  <div id="scans" style="display:flex;flex-direction:column;gap:14px">${T.scans.map(scanCard).join('')}</div>`;
+}
+
+function rowsFor(ex) {
+  const pm = passMark();
+  return resultsOf(ex.id).map(r => {
+    const ans = ansArr(r.answers, ex.items.length), g = PM.grade(ex, ans);
+    const raw = g.total ? 100 * g.earned / g.total : 0, gr = gradeOf(raw);
+    return { r, ans, g, raw, pct: Math.round(raw), gr, pass: gr >= pm };
+  });
+}
+function histHTML(rows) {
+  const bins = new Array(10).fill(0);
+  rows.forEach(x => { bins[Math.min(9, Math.floor(x.raw / 10))]++; });
+  const mx = Math.max.apply(null, bins) || 1;
+  const label = bins.map((c, i) => `${i * 10} to ${i === 9 ? 100 : i * 10 + 9} percent, ${c} student${c === 1 ? '' : 's'}`).join('; ');
+  return `<figure class="hf" role="img" aria-label="Students per score band. ${label}">
+    <div class="hist">${bins.map(c => `<div class="hcol">${c ? `<span class="hn">${c}</span>` : ''}<div class="hbar" style="height:${c ? Math.max(4, Math.round(96 * c / mx)) : 0}px"></div></div>`).join('')}</div>
+    <div class="hx">${bins.map((c, i) => `<span>${i * 10}</span>`).join('')}</div>
+    <figcaption class="hint">Students per score band, in percent of points. The table below has every score.</figcaption></figure>`;
+}
+function resultsHTML() {
+  const list = exams();
+  if (!list.length) return `<h1>Results</h1><div class="empty"><p class="muted">Results appear here after you scan sheets or import student codes.</p></div>`;
+  if (!T.resExam || !getExam(T.resExam)) T.resExam = list[0].id;
+  const ex = getExam(T.resExam);
+  let rows = rowsFor(ex);
+  rows.sort((a, b) => T.sort === 'score' ? b.raw - a.raw : T.sort === 'recent' ? (b.r.ts || 0) - (a.r.ts || 0) : String(a.r.name || a.r.sid).localeCompare(String(b.r.name || b.r.sid)));
+  const n = rows.length, avg = n ? rows.reduce((t, x) => t + x.gr, 0) / n : 0;
+  const hi = n ? Math.max.apply(null, rows.map(x => x.gr)) : 0, lo = n ? Math.min.apply(null, rows.map(x => x.gr)) : 0;
+  const passed = rows.filter(x => x.pass).length;
+  const flagged = rows.filter(x => x.r.away && x.r.away.n > 0).length;
+  const body = rows.map(x => {
+    const r = x.r, open = T.rowOpen === r.id;
+    return `<tr class="${open ? 'sel' : ''}"><td><button class="rowbtn" data-act="row" data-id="${esc(r.id)}">${esc(r.name || '(no name)')}</button><span class="sub">${esc(r.sid || '')}${r.sid ? ' · ' : ''}${r.source === 'online' ? 'Online' : 'Paper'}</span></td>
+      <td class="mono hs">${esc(r.sid || '')}</td><td class="hs">${r.source === 'online' ? 'Online' : 'Paper'}</td>
+      <td class="num">${x.g.earned}/${x.g.total}</td><td class="num">${fmtGrade(x.gr)}</td>
+      <td>${x.pass ? '<span class="pill good">Passed</span>' : '<span class="pill bad">Not passed</span>'}</td>
+      <td class="num">${r.away ? (r.away.n ? `<span class="pill warn">${r.away.n}× away</span>` : '0') : ''}</td></tr>
+      ${open ? `<tr class="sel"><td colspan="7">${detailHTML(ex, x)}</td></tr>` : ''}`;
+  }).join('');
+  return `<div class="head"><h1>Results</h1><button class="btn" data-act="export-csv"${n && DL ? '' : ' disabled'}>Export CSV</button></div>
+  <label class="f">Exam<select data-act="pick-res" id="res-exam">${list.map(e => `<option value="${esc(e.id)}"${e.id === T.resExam ? ' selected' : ''}>${esc(e.title)}</option>`).join('')}</select></label>
+  ${n ? `<div class="stats"><span><b>${n}</b>students</span><span><b>${fmtGrade(Math.round(avg * 10) / 10)}</b>average</span><span><b>${passed} of ${n}</b>passed (${fmtGrade(passMark())} or more)</span><span><b>${fmtGrade(hi)}</b>highest</span><span><b>${fmtGrade(lo)}</b>lowest</span><span><b>${(rows.reduce((t, x) => t + x.raw, 0) / n).toFixed(1)}%</b>MPS</span>${flagged ? `<span><b>${flagged}</b>left the page</span>` : ''}</div>
+  ${histHTML(rows)}
+  <div class="row"><span class="hint">Sort</span><select data-act="sort" style="width:auto"><option value="name"${T.sort === 'name' ? ' selected' : ''}>Name</option><option value="score"${T.sort === 'score' ? ' selected' : ''}>Highest score</option><option value="recent"${T.sort === 'recent' ? ' selected' : ''}>Most recent</option></select></div>
+  <div class="tablewrap"><table><thead><tr><th>Student</th><th class="hs">ID</th><th class="hs">Source</th><th class="num">Score</th><th class="num">${gradeName()}</th><th>Result</th><th class="num">Tab switches</th></tr></thead><tbody>${body}</tbody></table></div>`
+      : `<p class="muted">No results for this exam yet.</p>`}
+  <section class="blk"><h2>Import online submissions</h2>
+    <p class="hint">Paste the codes students sent you, one per line or all together.</p>
+    <textarea id="imp" class="code" rows="4" placeholder="PM1.…"></textarea>
+    <div class="row"><button class="btn" data-act="import">Import codes</button><span class="hint" id="imp-msg">${esc(T.importMsg)}</span></div>
+  </section>
+  ${n ? `<section class="blk"><h2>Item analysis</h2><p class="hint">Difficulty index, D.F. and the choice counts for every item are in the exam menu.</p><div class="row"><button class="btn" data-act="open-ia" data-id="${esc(ex.id)}">Open item analysis</button></div></section>` : ''}`;
+}
+function detailHTML(ex, x) {
+  const r = x.r;
+  const chips = ex.items.map((it, i) => {
+    const a = x.ans[i], cls = PM.right(it, a) ? 'ok' : !a ? 'bl' : 'no';
+    return `<div class="chip ${cls}"><span>${esc(a === '*' ? '*' : a || '·')}</span>${i + 1}</div>`;
+  }).join('');
+  const ev = r.away && r.away.ev && r.away.ev.length ? r.away.ev.map(e => `${fmtTime(e[0])} into the exam, ${e[1]}s ${e[2] === 'h' ? 'hidden or switched tab' : e[2] === 'r' ? 'page reloaded' : 'window lost focus'}`).join('; ') : '';
+  return `<div class="det"><div class="chips" aria-label="Answers">${chips}</div>
+    <p class="hint">Circle shows the student's answer. Green earned credit, red did not, dashed means blank, * means more than one mark.</p>
+    ${r.source === 'online' ? `<p class="hint">Took ${fmtTime(r.secs || 0)}${r.section ? ' · ' + esc(r.section) : ''}${r.reason === 'time' ? ' · submitted when time ran out' : r.reason === 'away' ? ' · auto-submitted after leaving the page' : ''}${r.cp ? ' · tried to copy ' + r.cp + ' time' + (r.cp === 1 ? '' : 's') : ''}</p>` : ''}
+    ${ev ? `<p class="note warn">Left the page: ${esc(ev)}</p>` : ''}
+    <div class="row"><button class="btn danger" data-act="del-result" data-id="${esc(r.id)}">Delete this result</button></div></div>`;
+}
+/* ---------- exam menu, item analysis, tag report ---------- */
+const num2 = v => (v == null || !Number.isFinite(v) ? '–' : String(Math.round(v * 100) / 100));
+const num1 = v => (v == null || !Number.isFinite(v) ? '–' : String(Math.round(v * 10) / 10));
+function rangeText(nums) {
+  const out = []; let i = 0;
+  while (i < nums.length) { let j = i; while (j + 1 < nums.length && nums[j + 1] === nums[j] + 1) j++; out.push(j > i + 1 ? nums[i] + '–' + nums[j] : nums.slice(i, j + 1).join(', ')); i = j + 1; }
+  return out.join(', ');
+}
+function backBtn(label) { return `<div class="head"><button class="btn ghost" data-act="menu-back">← ${label}</button></div>`; }
+function menuHTML() {
+  const ex = getExam(T.menu);
+  if (!ex) { T.menu = null; return examsHTML(); }
+  const rows = rowsFor(ex), st = PM.analyze(ex, rows.map(x => x.ans));
+  const cls = Array.from(new Set(rows.map(x => x.r.section || rosterSection(x.r.sid || '')).filter(Boolean)));
+  const tabs = [['details', 'Details'], ['stats', 'Statistics']].map(t => `<button class="tab" role="tab" data-act="mtab" data-t="${t[0]}" aria-selected="${T.mtab === t[0]}">${t[1]}</button>`).join('');
+  const row = (k, v) => `<div class="qrow"><span class="qk">${k}</span><span class="qv">${v}</span></div>`;
+  let panel;
+  if (T.mtab === 'stats') {
+    const sc = st.score, pc = st.pct, f = (o, k, d) => (o ? (d ? num1(o[k]) : num2(o[k])) : '–');
+    panel = st.n ? `<div class="tablewrap"><table class="st"><thead><tr><th></th><th class="num">Score</th><th class="num">Percent</th></tr></thead><tbody>
+        ${[['Min', 'min'], ['Max', 'max'], ['Average', 'avg'], ['Median', 'med'], ['Std. deviation', 'sd']].map(r => `<tr><td>${r[0]}</td><td class="num">${f(sc, r[1])}</td><td class="num">${f(pc, r[1], 1)}</td></tr>`).join('')}
+      </tbody></table></div>
+      <div class="mps"><span class="qk">MPS (mean percentage score)</span><b>${num1(st.mps)}%</b><span class="pill">${esc(PM.mastery(st.mps))}</span></div>
+      <p class="hint">Out of ${st.total} point${st.total === 1 ? '' : 's'}, from ${st.n} paper${st.n === 1 ? '' : 's'}. Standard deviation is the sample deviation, so it needs two papers.</p>`
+      : '<p class="muted">Statistics appear after you scan sheets or import codes.</p>';
+  } else {
+    panel = `<div class="qcard">${row('Subject', esc(ex.subject || '–'))}${row('Classes', cls.length ? esc(cls.join(', ')) : '–')}
+      ${row('Answer sheet', `<button class="link" data-act="sheet-pdf">Download PDF</button>`)}
+      ${row('Date', (ex.createdAt > 1e11 ? esc(new Date(ex.createdAt).toLocaleDateString()) : '–'))}${row('Papers', String(st.n))}${row('Questions', String(ex.items.length))}</div>
+      ${st.n ? `<div class="mps"><span class="qk">MPS</span><b>${num1(st.mps)}%</b><span class="pill">${esc(PM.mastery(st.mps))}</span></div>` : ''}`;
+  }
+  const btns = [['edit-key', 'Edit key and questions', 'Answer key, choices, tags, online link'], ['go-scan', 'Scan papers', 'Read filled answer sheets'], ['go-review', 'Review papers', st.n + ' saved, with scores and tab switches'], ['open-ia', 'Item analysis', 'Difficulty index, D.F., choice counts'], ['open-tags', 'Tag report', 'MPS for each topic or skill']];
+  return `<div class="head"><button class="btn ghost" data-act="menu-back">← All exams</button></div>
+  <h1>${esc(ex.title)}</h1>
+  <div class="tabs mtabs" role="tablist">${tabs}</div>
+  ${panel}
+  <div class="mbtns">${btns.map(b => `<button class="mbtn" data-act="${b[0]}"><b>${b[1]}</b><span>${b[2]}</span></button>`).join('')}</div>`;
+}
+function iaSuggest(it, x) {
+  if (it.bonus) return '<span class="pill warn">Credit to all</span>';
+  if (!it.a) return '<span class="pill warn">No key</span>';
+  if (x.df == null) return '';
+  if (x.df < 0) return '<span class="pill bad">Check the key</span>';
+  if (x.df < 0.2 || x.p <= 0.2) return '<span class="pill warn">Revise</span>';
+  return '<span class="pill good">Keep</span>';
+}
+function iaHTML() {
+  const ex = getExam(T.menu);
+  if (!ex) { T.menu = null; T.sub = ''; return examsHTML(); }
+  const rows = rowsFor(ex), st = PM.analyze(ex, rows.map(x => x.ans)), k = ex.choices;
+  if (!st.n) return backBtn('Back') + `<h1>Item analysis</h1><p class="muted">Item analysis appears after you scan sheets or import codes for this exam.</p>`;
+  const items = st.items.map(x => {
+    const it = ex.items[x.i], key = it.a;
+    const letters = LET.slice(0, k).split('');
+    const order = key ? [key].concat(letters.filter(L => L !== key)) : letters;
+    const bars = order.map(L => {
+      const c = x.counts[L] || 0, h = Math.round(44 * c / st.n);
+      const cls = L === key ? 'key' : c ? '' : 'neu';
+      return `<div class="bcol ${cls}"><span class="bc">${c}</span><div class="bb"><i style="height:${c ? Math.max(3, h) : 0}px"></i></div><span class="bl">${L}</span></div>`;
+    }).join('');
+    const label = `Item ${x.n}: ${Math.round(x.p * 100)} percent right. ` + order.map(L => `${L} ${x.counts[L] || 0}`).join(', ') + `, blank ${x.blank}.`;
+    return `<article class="ia2"><span class="ia2n">${x.n}</span><b class="ia2p">${Math.round(x.p * 100)}%</b>
+      <div class="bars" role="img" aria-label="${label}">${bars}</div>
+      <div class="ia2m"><span>Difficulty <b class="mono">${num2(x.p)}</b> ${esc(PM.diffLabel(x.p))}</span><span>D.F. <b class="mono">${num2(x.df)}</b></span>${x.blank ? `<span>Blank ${x.blank}</span>` : ''}${iaSuggest(it, x)}${it.tag ? `<span class="pill">${esc(it.tag)}</span>` : ''}</div></article>`;
+  }).join('');
+  return backBtn('Back') + `<h1>Item analysis</h1>
+  <p class="hint">${esc(ex.title)} · ${st.n} paper${st.n === 1 ? '' : 's'}. Green is the correct choice, red bars are wrong choices students picked.</p>
+  <details class="how"><summary>How to read this</summary>
+    <p class="hint"><b>Difficulty index</b> is the share of students who got the item right: 0.20 or less very difficult, up to 0.40 difficult, up to 0.60 moderate, up to 0.80 easy, above that very easy.</p>
+    <p class="hint"><b>D.F.</b> is the correlation between getting the item right and the total score, from −1 to 1, the same measure ZipGrade shows. Above 0.20 is good. A negative value means strong students missed it more than weak ones, so check the key. The labels beside each item are only a guide.</p>
+    ${st.n < 30 ? '<p class="note warn">With fewer than about 30 papers these numbers are rough.</p>' : ''}</details>
+  <div class="ialist">${items}</div>`;
+}
+function tagGroups(ex) {
+  const g = {};
+  ex.items.forEach((it, i) => { const t = String(it.tag || '').trim(); if (t) { (g[t] = g[t] || []).push(i); } });
+  return Object.keys(g).map(t => ({ tag: t, idx: g[t] }));
+}
+function tagsHTML() {
+  const ex = getExam(T.menu);
+  if (!ex) { T.menu = null; T.sub = ''; return examsHTML(); }
+  const rows = rowsFor(ex), groups = tagGroups(ex);
+  const body = groups.map(g => {
+    const sub = { items: g.idx.map(i => ex.items[i]) };
+    const st = rows.length ? PM.analyze(sub, rows.map(x => g.idx.map(i => x.ans[i]))) : null;
+    return `<tr><td>${esc(g.tag)}</td><td>${esc(rangeText(g.idx.map(i => i + 1)))}</td><td class="num">${st ? num1(st.mps) + '%' : '–'}</td><td>${st ? esc(PM.mastery(st.mps)) : ''}</td></tr>`;
+  }).join('');
+  return backBtn('Back') + `<h1>Tag report</h1>
+  <p class="hint">${esc(ex.title)}. MPS for each topic or skill you tagged, with the DepEd mastery level.</p>
+  ${groups.length ? `<div class="tablewrap"><table><thead><tr><th>Tag</th><th>Items</th><th class="num">MPS</th><th>Mastery</th></tr></thead><tbody>${body}</tbody></table></div>${rows.length ? '' : '<p class="muted">MPS appears after you scan sheets or import codes.</p>'}` : '<p class="muted">No items are tagged yet. Tag items below, or open one in the editor and fill in its Tag.</p>'}
+  <section class="blk"><h2>Tag a range of items</h2>
+    <div class="grid3"><label class="f">From item<input type="number" id="tg-from" min="1" max="${ex.items.length}" value="1"></label>
+    <label class="f">To item<input type="number" id="tg-to" min="1" max="${ex.items.length}" value="${Math.min(5, ex.items.length)}"></label>
+    <label class="f">Tag<input id="tg-name" maxlength="30" placeholder="Plate tectonics"></label></div>
+    <div class="row"><button class="btn primary" data-act="tag-apply">Apply tag</button><span class="hint">Leave the tag empty to clear it from those items.</span></div></section>`;
+}
+function settingsHTML() {
+  const c = cfg(), dep = c.scale === 'deped';
+  return `<h1>Settings</h1>
+  <section class="blk"><h2>Class list</h2>
+    <p class="hint">One student per line: ID, name, section. When a scanned ID matches, the name fills in.</p>
+    <textarea data-s="roster" rows="8" class="mono" placeholder="000123, Maria Santos, 11-Rizal">${esc(c.roster)}</textarea></section>
+  <section class="blk"><h2>Grades</h2>
+    <div class="grid2"><label class="f">Show grades as<select data-s="scale"><option value="pct"${!dep ? ' selected' : ''}>Percent of points</option><option value="deped"${dep ? ' selected' : ''}>DepEd transmuted grade</option></select></label>
+    <label class="f">Passing mark<input type="number" min="0" max="100" step="1" data-s="pass" value="${esc(c.pass === '' ? passMark() : c.pass)}"></label></div>
+    <p class="hint">${dep ? 'Percent is converted with the standard DepEd transmutation table: 60% becomes 75 and 100% stays 100. Check it against your own school\'s table.' : 'Students at or above the passing mark show as Passed.'}</p></section>
+  <section class="blk"><h2>Student link</h2>
+    <p class="hint">Open this page's Share menu, allow anyone with the link, copy the link, and paste it here once. Each exam's student link is built from it.</p>
+    <input data-s="base" value="${esc(c.base)}" placeholder="https://claude.ai/artifact/…" inputmode="url"></section>
+  <section class="blk"><h2>Answer sheet</h2>
+    <div class="grid2"><label class="f">Paper<select data-s="paper"><option value="a4"${c.paper === 'a4' ? ' selected' : ''}>A4</option><option value="letter"${c.paper === 'letter' ? ' selected' : ''}>Letter</option></select></label>
+    <label class="f">Student ID digits<select data-s="idLen">${[4, 5, 6, 7, 8, 9, 10, 11, 12].map(n => `<option${n === c.idLen ? ' selected' : ''}>${n}</option>`).join('')}</select></label></div>
+    <p class="hint">Sheets already printed keep working only if you scan them with the same ID digits.</p></section>
+  <section class="blk"><h2>Scanning</h2>
+    <label class="f">Mark sensitivity: ${Number(c.thr).toFixed(2)}<input type="range" min="0.10" max="0.35" step="0.01" data-s="thr" value="${c.thr}"></label>
+    <p class="hint">Lower reads lighter pencil marks but may pick up smudges. The default suits dark pencil and pen.</p></section>
+  <section class="blk"><h2>Backup</h2>
+    <p class="hint">${Object.keys(T.S.exams).length} exams and ${Object.keys(T.S.results).length} results are kept here and in your account when you are signed in. A backup file also holds your answer keys, so keep it private.</p>
+    <div class="row"><button class="btn" data-act="backup"${DL ? '' : ' disabled'}>Download backup</button><button class="btn" data-act="restore">Restore from backup</button></div>
+    <input type="file" id="in-restore" accept=".json,application/json" hidden>
+    <p class="hint" id="bk-msg">${esc(T.restoreMsg)}</p></section>`;
+}
+
+function render() {
+  if (T.mode === 'checking') return;
+  if (T.mode === 'gate') { gate(); return; }
+  if (!$('#view')) shellHTML();
+  $$('.tab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.t === T.tab)));
+  const v = $('#view');
+  v.innerHTML = T.tab === 'exams' ? (T.editing ? editorHTML() : (T.menu && getExam(T.menu) ? (T.sub === 'ia' ? iaHTML() : T.sub === 'tags' ? tagsHTML() : menuHTML()) : examsHTML()))
+    : T.tab === 'scan' ? scanHTML() : T.tab === 'results' ? resultsHTML() : settingsHTML();
+  if (T.tab === 'scan') T.scans.forEach(s => { if (s.state === 'ready') drawReview(s); });
+  syncChip();
+}
+function gate() {
+  $('#app').innerHTML = `<div class="stu"><h1>SnapGrade</h1>
+    <p>This is the teacher workspace for building exams and scanning answer sheets. If you are taking an exam, open the exam link your teacher sent you. It ends in <span class="mono">#q</span> followed by letters and numbers.</p>
+    <div><button class="btn" data-act="local">I am the teacher, work on this device</button></div></div>`;
+}
+
+/* ---------- editing ---------- */
+function setCount(ex, n) {
+  n = Math.max(1, Math.min(60, n | 0));
+  const cur = ex.items.length;
+  if (n < cur) {
+    const lost = ex.items.slice(n).some(it => it.q || it.a || it.c.some(Boolean));
+    if (lost && T.shrink !== n) {
+      T.shrink = n; T.warn = `Going down to ${n} items removes items ${n + 1} to ${cur}, which have content. Choose ${n} again to confirm.`;
+      render(); return;
+    }
+  }
+  T.shrink = 0; T.warn = '';
+  while (ex.items.length < n) ex.items.push(blankItem(ex.choices));
+  ex.items.length = n; ex.nItems = n;
+  touch(ex); render();
+}
+function setChoices(ex, k) {
+  ex.choices = k;
+  ex.items.forEach(it => { while (it.c.length < k) it.c.push(''); if (it.a && LET.indexOf(it.a) >= k) it.a = ''; });
+  touch(ex); render();
+}
+function parseQuestions(text) {
+  const out = []; let cur = null, lastC = -1, keyLine = '';
+  text.replace(/\r/g, '').split('\n').forEach(raw => {
+    const line = raw.trim();
+    if (!line) return;
+    if (!cur || out.length) { const kl = line.replace(/\s+/g, '').toUpperCase(); if (/^[A-E]{2,60}$/.test(kl) && out.length) { keyLine = kl; cur = null; return; } }
+    let m = line.match(/^\(?([A-Ea-e])[.):]\s*(.*)$/);
+    if (m && cur) { lastC = m[1].toUpperCase().charCodeAt(0) - 65; cur.c[lastC] = m[2]; return; }
+    m = line.match(/^(?:answer|ans|key)\s*[:=-]?\s*\(?([A-Ea-e])\)?/i);
+    if (m && cur) { cur.a = m[1].toUpperCase(); return; }
+    m = line.match(/^(?:Q\s*)?(\d{1,3})[.):]\s*(.*)$/i);
+    if (m) { cur = { q: m[2], c: [], a: '', pts: 1 }; lastC = -1; out.push(cur); return; }
+    if (cur) { if (lastC >= 0) cur.c[lastC] = (cur.c[lastC] || '') + ' ' + line; else cur.q += ' ' + line; }
+  });
+  out.key = keyLine;
+  return out;
+}
+// Merge a fresh import into the current exam. Answer keys, tags, points and credit-to-all survive a re-import when the file does not give them.
+function mergeImport(prev, parsed, k) {
+  const keyStr = parsed.key || '';
+  let kept = 0, fromFile = 0;
+  const items = parsed.map((it, i) => {
+    const o = prev[i] || {};
+    if (keyStr[i] && LET.indexOf(keyStr[i]) >= 0 && LET.indexOf(keyStr[i]) < k) { it.a = keyStr[i]; fromFile++; }
+    else if (it.a) fromFile++;
+    else if (o.a && LET.indexOf(o.a) >= 0 && LET.indexOf(o.a) < k) { it.a = o.a; kept++; }
+    if (!it.tag && o.tag) it.tag = o.tag;
+    if (!it.bonus && o.bonus) it.bonus = true;
+    if ((!it.pts || it.pts === 1) && o.pts > 0) it.pts = o.pts;
+    return it;
+  });
+  const missing = items.filter(it => !it.a && !it.bonus).length;
+  return { items, kept, fromFile, missing };
+}
+function importPasted(ex) {
+  const parsed = parseQuestions($('#e-paste').value).slice(0, 60);
+  if (!parsed.length) { $('#paste-msg').textContent = 'No numbered questions found.'; return; }
+  const k = Math.max(2, Math.min(5, Math.max.apply(null, parsed.map(it => it.c.length))));
+  parsed.forEach(it => { for (let j = 0; j < k; j++) it.c[j] = it.c[j] || ''; it.c.length = Math.max(k, it.c.length); if (LET.indexOf(it.a) >= k) it.a = ''; });
+  const m = mergeImport(ex.items, parsed, k);
+  const hadKeys = ex.items.some(it => it.a);
+  ex.items = m.items; ex.nItems = m.items.length; ex.choices = k; T.open = {};
+  touch(ex); render();
+  const bits = [`Imported ${m.items.length} questions.`];
+  if (m.kept) bits.push(`Kept ${m.kept} answer key${m.kept === 1 ? '' : 's'} from before.`);
+  if (m.missing) bits.push(`${m.missing} still need${m.missing === 1 ? 's' : ''} an answer.`);
+  if (hadKeys && !m.kept && !m.fromFile) bits.push('The old keys did not carry over. Check the list.');
+  $('#paste-msg').textContent = bits.join(' ');
+}
+function validateOnline(ex) {
+  for (let i = 0; i < ex.items.length; i++) {
+    const it = ex.items[i], filled = it.c.slice(0, ex.choices).filter(s => String(s).trim()).length;
+    if (!it.q.trim() || filled < 2) return `Item ${i + 1} needs question text and at least two choices before it can go online.`;
+    if (!it.a && !it.bonus) return `Item ${i + 1} has no answer key.`;
+  }
+  return '';
+}
+async function publish(ex) {
+  const err = validateOnline(ex);
+  if (err) { toast(err); return; }
+  if (!ASSETS) { toast('Publishing needs you signed in to Claude as the owner of this page.'); return; }
+  try {
+    const res = await ASSETS.upload(new Blob([JSON.stringify(studentPayload(ex))], { type: 'application/json' }), { type: 'application/json' });
+    const old = ex.pub && ex.pub.assetId;
+    ex.pub = { assetId: res.id, at: Date.now(), sig: sigOf(ex) };
+    touch(ex); put('exams', ex.id, ex);
+    if (old) { try { await ASSETS.delete(old); } catch (e) { /* old link may linger */ } }
+    render(); toast('Student link published.');
+  } catch (e) { toast('Could not publish (' + ((e && e.code) || 'error') + '). Check your connection and try again.'); }
+}
+async function unpublish(ex) {
+  const old = ex.pub && ex.pub.assetId;
+  ex.pub = null; touch(ex); put('exams', ex.id, ex);
+  if (old && ASSETS) { try { await ASSETS.delete(old); } catch (e) { /* ignore */ } }
+  render(); toast('Student link closed.');
+}
+
+/* ---------- answer sheet PDF ---------- */
+
+async function sheetPDF(ex) {
+  if (!DL) { toast('Downloads are not available in this view.'); return; }
+  const c = cfg(), lay = PM.layout(ex.nItems, ex.choices, c.idLen);
+  const bytes = PM.sheetPDF(lay, { paper: c.paper, title: ex.title, footer: 'SnapGrade · ' + ex.title + ' · ' + ex.nItems + ' items' });
+  try {
+    await DL.save({ filename: slug(ex.title) + '-answer-sheet.pdf', data: bytes });
+    toast('Answer sheet ready. Print at 100% scale, not "fit to page".');
+  } catch (e) { if (!e || e.code !== 'declined') toast('Could not save the PDF.'); }
+}
+
+/* ---------- scanning ---------- */
+async function fileToGray(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const sc = Math.min(1, 1800 / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.round(img.naturalWidth * sc), h = Math.round(img.naturalHeight * sc);
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    const cx = cv.getContext('2d', { willReadFrequently: true });
+    cx.drawImage(img, 0, 0, w, h);
+    const d = cx.getImageData(0, 0, w, h).data, g = new Uint8Array(w * h);
+    for (let i = 0; i < g.length; i++) g[i] = (d[4 * i] * 77 + d[4 * i + 1] * 151 + d[4 * i + 2] * 28) >> 8;
+    return { gray: g, w, h };
+  } finally { URL.revokeObjectURL(url); }
+}
+async function onFiles(files) {
+  const ex = getExam(T.scanExam);
+  if (!ex) { toast('Choose an exam first.'); return; }
+  const lay = PM.layout(ex.nItems, ex.choices, cfg().idLen);
+  for (const f of Array.prototype.slice.call(files)) {
+    const s = { id: uid(), file: f.name || 'Photo', examId: ex.id, state: 'reading' };
+    T.scans.unshift(s); T.scans = T.scans.slice(0, 12);
+    render(); await tick();
+    try {
+      const im = await fileToGray(f), res = PM.scan(im.gray, im.w, im.h, lay, { thr: cfg().thr });
+      if (!res.ok) {
+        s.state = 'fail';
+        s.err = 'Could not find the four black corner squares. Lay the sheet flat, keep every corner in the frame, and avoid shadows across the page. Then try again.';
+      } else {
+        const full = res.idStr.indexOf('_') < 0 && res.idStr.indexOf('*') < 0;
+        s.state = 'ready'; s.res = res; s.ans = res.answers.slice();
+        s.sid = full ? res.idStr : ''; s.idHint = full ? '' : 'Read as ' + res.idStr.replace(/\*/g, '?').replace(/_/g, '-');
+        s.name = rosterName(s.sid);
+        s.warnTxt = res.marked < Math.max(1, Math.floor(ex.nItems * 0.3)) ? 'Very few answers were detected. Check that the photo is sharp and the bubbles are filled darkly.' : '';
+      }
+    } catch (e) { s.state = 'fail'; s.err = 'This photo could not be opened. Try taking it again.'; }
+    render(); await tick();
+  }
+}
+function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+function drawReview(s) {
+  const cv = $('[data-cv="' + s.id + '"]');
+  if (!cv || !s.res) return;
+  const ex = getExam(s.examId), lay = PM.layout(ex.nItems, ex.choices, cfg().idLen), wp = s.res.warp;
+  cv.width = wp.w; cv.height = wp.h;
+  const cx = cv.getContext('2d'), img = cx.createImageData(wp.w, wp.h);
+  for (let i = 0; i < wp.data.length; i++) { const v = wp.data[i]; img.data[4 * i] = v; img.data[4 * i + 1] = v; img.data[4 * i + 2] = v; img.data[4 * i + 3] = 255; }
+  cx.putImageData(img, 0, 0);
+  const good = cssVar('--good') || '#1f7a4d', bad = cssVar('--bad') || '#b8322e', warn = cssVar('--warn') || '#8f5b00';
+  const P = v => (v + PM.PAD) * PM.S;
+  lay.qs.forEach(q => {
+    const a = s.ans[q.i], it = ex.items[q.i], okk = PM.right(it, a);
+    q.b.forEach(b => {
+      const x = P(b.x), y = P(b.y), r = PM.R * PM.S;
+      if (a === b.c) { cx.globalAlpha = 0.55; cx.fillStyle = okk ? good : bad; cx.beginPath(); cx.arc(x, y, r * 0.95, 0, 7); cx.fill(); cx.globalAlpha = 1; }
+      if (a === '*') { cx.strokeStyle = warn; cx.lineWidth = 3; cx.beginPath(); cx.arc(x, y, r * 1.15, 0, 7); cx.stroke(); }
+      if (!okk && it.a === b.c) { cx.strokeStyle = good; cx.lineWidth = 3.5; cx.beginPath(); cx.arc(x, y, r * 1.25, 0, 7); cx.stroke(); }
+    });
+    const lb = q.b[q.b.length - 1];
+    cx.fillStyle = okk ? good : bad; cx.font = 'bold 15px sans-serif';
+    cx.fillText(okk ? '✓' : '✗', P(lb.x + 6.5), P(q.y + 1.2));
+  });
+}
+function tapReview(e) {
+  const cv = e.target.closest('canvas[data-cv]');
+  if (!cv) return;
+  const s = T.scans.find(x => x.id === cv.dataset.cv);
+  if (!s || s.state !== 'ready') return;
+  const rect = cv.getBoundingClientRect();
+  const tx = (e.clientX - rect.left) / rect.width * cv.width / PM.S - PM.PAD, ty = (e.clientY - rect.top) / rect.height * cv.height / PM.S - PM.PAD;
+  const ex = getExam(s.examId), lay = PM.layout(ex.nItems, ex.choices, cfg().idLen);
+  let best = null, bd = 4;
+  lay.qs.forEach(q => q.b.forEach(b => { const d = Math.hypot(b.x - tx, b.y - ty); if (d < bd) { bd = d; best = { q: q.i, c: b.c }; } }));
+  if (!best) return;
+  s.ans[best.q] = s.ans[best.q] === best.c ? '' : best.c;
+  drawReview(s);
+  const g = PM.grade(ex, s.ans), pill = $('#sc-' + s.id), fl = $('#fl-' + s.id);
+  if (pill) pill.textContent = g.earned + ' / ' + g.total;
+  if (fl) fl.innerHTML = flagHTML(s);
+}
+function saveScan(s, quiet) {
+  const ex = getExam(s.examId), dup = findDup(s), id = dup ? dup.id : uid();
+  const rec = { id, examId: ex.id, source: 'scan', sid: s.sid.trim(), name: s.name.trim(), section: '', answers: s.ans.map(a => a || '-').join(''), ts: Date.now() };
+  put('results', id, rec);
+  const g = PM.grade(ex, s.ans);
+  s.state = 'saved'; s.res = null;
+  s.label = (rec.name || rec.sid || 'Student') + ' · ' + g.earned + ' of ' + g.total;
+  if (!quiet) { render(); toast('Saved: ' + s.label); }
+}
+function saveAllReady() {
+  let saved = 0, skipped = 0;
+  T.scans.filter(s => s.state === 'ready').forEach(s => {
+    if (s.sid && s.sid.trim() && s.ans.indexOf('*') < 0) { saveScan(s, true); saved++; } else skipped++;
+  });
+  render();
+  toast(`Saved ${saved} sheet${saved === 1 ? '' : 's'}${skipped ? `, ${skipped} need a look` : ''}.`);
+}
+
+/* ---------- results ---------- */
+function importCodes(text) {
+  const found = text.match(/PM1\.[A-Za-z0-9_-]+\.[a-z0-9]+/g) || [];
+  let ok = 0, dup = 0, bad = 0, other = 0;
+  found.forEach(code => {
+    const parts = code.split('.'), b = parts[1], cs = parts[2];
+    if (crc(b) !== cs) { bad++; return; }
+    let p;
+    try { p = JSON.parse(b64d(b)); } catch (e) { bad++; return; }
+    const ex = p && typeof p.x === 'string' ? getExam(p.x) : null;
+    if (!ex) { other++; return; }
+    const rid = 'o' + cs + b.length.toString(36);
+    if (has(T.S.results, rid)) { dup++; return; }
+    const w = Array.isArray(p.w) ? p.w.slice(0, 40).filter(e => Array.isArray(e)).map(e => [e[0] | 0, e[1] | 0, e[2] === 'h' || e[2] === 'r' ? e[2] : 'b']) : [];
+    put('results', rid, {
+      id: rid, examId: ex.id, source: 'online', sid: String(p.i || '').slice(0, 20), name: String(p.n || '').slice(0, 80), section: String(p.s || '').slice(0, 30),
+      answers: String(p.a || '').replace(/[^A-E*-]/g, '').slice(0, 60), ts: +p.ts || Date.now(), secs: +p.t | 0, reason: String(p.r || '').slice(0, 8), cp: p.cp | 0,
+      away: { n: w.length, secs: w.reduce((t, e) => t + e[1], 0), ev: w }
+    });
+    ok++;
+  });
+  if (!found.length) return 'No codes found in that text.';
+  return `Imported ${ok}${dup ? `, ${dup} already imported` : ''}${bad ? `, ${bad} damaged (ask for a resend)` : ''}${other ? `, ${other} for exams not in this account` : ''}.`;
+}
+async function exportCSV(ex) {
+  const q = s => '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"';
+  const rows = rowsFor(ex).sort((a, b) => String(a.r.name || a.r.sid).localeCompare(String(b.r.name || b.r.sid)));
+  const head = ['Name', 'Student ID', 'Section', 'Source', 'Score', 'Total', 'Percent', cfg().scale === 'deped' ? 'DepEd grade' : 'Grade', 'Result', 'Times away', 'Seconds away'].concat(ex.items.map((_, i) => 'Q' + (i + 1)));
+  const lines = [head.map(q).join(',')];
+  lines.push(['ANSWER KEY'].concat(new Array(10).fill('')).concat(ex.items.map(it => (it.bonus ? 'ALL' : it.a))).map(q).join(','));
+  rows.forEach(x => {
+    const r = x.r;
+    lines.push([r.name, r.sid, r.section, r.source === 'online' ? 'Online' : 'Paper', x.g.earned, x.g.total, x.pct, x.gr, x.pass ? 'Passed' : 'Not passed', r.away ? r.away.n : '', r.away ? r.away.secs : ''].concat(x.ans.slice(0, ex.items.length).map(a => a || '')).map(q).join(','));
+  });
+  try { await DL.save({ filename: slug(ex.title) + '-results.csv', data: '﻿' + lines.join('\r\n') }); toast('Results exported.'); }
+  catch (e) { if (!e || e.code !== 'declined') toast('Could not save the file.'); }
+}
+
+/* ---------- offline exam file ---------- */
+function standaloneHTML(ex) {
+  const css = ($('#pm-css') || {}).textContent, omr = ($('#pm-omr') || {}).textContent, app = ($('#pm-app') || {}).textContent;
+  if (!css || !omr || !app) return '';
+  const data = JSON.stringify(Object.assign(studentPayload(ex), { sig: sigOf(ex) })).replace(/</g, '\\u003c');
+  return '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + esc(ex.title) + '</title>'
+    + '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">'
+    + '<style>' + css + '</style></head><body><div class="wrap"><div id="app"></div></div><div id="toast" class="toast" role="status" aria-live="polite" hidden></div>'
+    + '<script>window.__PM_EXAM=' + data + ';<\/script><script>' + omr + '<\/script><script>' + app + '<\/script></body></html>';
+}
+async function examFile(ex) {
+  const err = validateOnline(ex);
+  if (err) { toast(err); return; }
+  const html = standaloneHTML(ex);
+  if (!html) { toast('Could not build the exam file from this view.'); return; }
+  if (!DL) {
+    const ok = await copyText(html, null);
+    if (ok) { toast('Exam file copied. Paste it into Notepad and save as .html.'); }
+    else { T.srcText = html; render(); const box = $('#src-box'); if (box) { box.focus(); box.select(); } toast('Copy the text in the box below.'); }
+    return;
+  }
+  try { await DL.save({ filename: slug(ex.title) + '-exam.html', data: html }); toast('Exam file ready. Send it to students.'); }
+  catch (e) { if (!e || e.code !== 'declined') toast('Could not save the exam file.'); }
+}
+
+/* ---------- backup and restore ---------- */
+async function backup() {
+  if (!DL) { toast('Downloads are not available in this view.'); return; }
+  const d = new Date(), stamp = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  try {
+    await DL.save({ filename: 'snapgrade-backup-' + stamp + '.json', data: JSON.stringify({ app: 'snapgrade', v: 1, at: Date.now(), exams: T.S.exams, results: T.S.results, settings: T.S.settings }) });
+    toast('Backup saved.');
+  } catch (e) { if (!e || e.code !== 'declined') toast('Could not save the backup.'); }
+}
+function cleanExam(id, e) {
+  const k = Math.max(2, Math.min(5, (e.choices | 0) || 4));
+  const items = e.items.slice(0, 60).map(it => {
+    it = it || {};
+    const c = (Array.isArray(it.c) ? it.c : []).slice(0, 5).map(x => String(x == null ? '' : x).slice(0, 500));
+    while (c.length < k) c.push('');
+    return { q: String(it.q || '').slice(0, 2000), c, a: typeof it.a === 'string' && it.a.length === 1 && LET.indexOf(it.a) >= 0 && LET.indexOf(it.a) < k ? it.a : '', pts: it.pts > 0 ? Math.min(20, +it.pts) : 1, bonus: !!it.bonus, tag: String(it.tag || '').trim().slice(0, 30) };
+  });
+  const pa = e.pub && typeof e.pub.assetId === 'string' && /^[0-9a-f]{32}$/.test(e.pub.assetId) ? e.pub : null;
+  return {
+    id, title: String(e.title || 'Untitled exam').slice(0, 80), subject: String(e.subject || '').slice(0, 60), choices: k, nItems: items.length, items,
+    minutes: Math.max(0, Math.min(300, e.minutes | 0)), shuffleQ: !!e.shuffleQ, shuffleC: !!e.shuffleC, maxAway: Math.max(0, Math.min(20, e.maxAway | 0)),
+    instructions: String(e.instructions || '').slice(0, 1000), createdAt: +e.createdAt || Date.now(), updatedAt: +e.updatedAt || Date.now(),
+    pub: pa ? { assetId: pa.assetId, at: +pa.at || 0, sig: String(pa.sig || '').slice(0, 20) } : null
+  };
+}
+function cleanResult(id, r) {
+  const out = {
+    id, examId: r.examId, source: r.source === 'online' ? 'online' : 'scan', sid: String(r.sid || '').slice(0, 20), name: String(r.name || '').slice(0, 80),
+    section: String(r.section || '').slice(0, 30), answers: String(r.answers || '').replace(/[^A-E*-]/g, '').slice(0, 60), ts: +r.ts || Date.now(),
+    secs: +r.secs | 0, reason: String(r.reason || '').slice(0, 8), cp: r.cp | 0
+  };
+  if (r.away && typeof r.away === 'object') {
+    out.away = { n: r.away.n | 0, secs: r.away.secs | 0, ev: Array.isArray(r.away.ev) ? r.away.ev.slice(0, 40).filter(Array.isArray).map(e => [e[0] | 0, e[1] | 0, e[2] === 'h' || e[2] === 'r' ? e[2] : 'b']) : [] };
+  }
+  return out;
+}
+async function restoreBackup(file) {
+  let d;
+  try { d = JSON.parse(await file.text()); } catch (e) { return 'That file is not a SnapGrade backup.'; }
+  if (!d || d.app !== 'snapgrade' || !d.exams || typeof d.exams !== 'object' || !d.results || typeof d.results !== 'object') return 'That file is not a SnapGrade backup.';
+  let ne = 0, nr = 0, skipped = 0;
+  Object.keys(d.exams).forEach(id => {
+    const e = d.exams[id];
+    if (!okId(id) || !e || e.id !== id || !Array.isArray(e.items)) { skipped++; return; }
+    const cur = getExam(id);
+    if (!cur || (+e.updatedAt || 0) > (cur.updatedAt || 0)) { put('exams', id, cleanExam(id, e)); ne++; }
+  });
+  Object.keys(d.results).forEach(id => {
+    const r = d.results[id];
+    if (!okId(id) || !r || r.id !== id || typeof r.examId !== 'string') { skipped++; return; }
+    if (!has(T.S.results, id)) { put('results', id, cleanResult(id, r)); nr++; }
+  });
+  const a = d.settings && d.settings.app;
+  if (a && typeof a === 'object' && !T.S.settings.app) {
+    put('settings', 'app', {
+      paper: a.paper === 'letter' ? 'letter' : 'a4', idLen: Math.max(4, Math.min(12, a.idLen | 0 || 6)), thr: Math.max(0.1, Math.min(0.35, +a.thr || 0.18)),
+      roster: String(a.roster || '').slice(0, 30000), base: String(a.base || '').slice(0, 300), scale: a.scale === 'deped' ? 'deped' : 'pct', pass: a.pass === '' || a.pass == null ? '' : String(parseFloat(a.pass) || '')
+    });
+  }
+  return `Restored ${ne} exam${ne === 1 ? '' : 's'} and ${nr} result${nr === 1 ? '' : 's'}${skipped ? `, ${skipped} skipped` : ''}.`;
+}
+
+/* ---------- events ---------- */
+let armedKey = '';
+function arm(key, btn, label) {
+  if (armedKey === key) { armedKey = ''; return true; }
+  armedKey = key; btn.textContent = label;
+  setTimeout(() => { if (armedKey === key) armedKey = ''; }, 3500);
+  return false;
+}
+function onClick(e) {
+  const a = e.target.closest('[data-act]');
+  if (!a) { tapReview(e); return; }
+  const act = a.dataset.act, ex = T.editing ? getExam(T.editing) : null;
+  switch (act) {
+    case 'tab': T.tab = a.dataset.t; if (T.tab !== 'exams') T.editing = null; render(); break;
+    case 'local': T.mode = 'local'; shellHTML(); render(); break;
+    case 'new-exam': { const n = +a.dataset.n || 20, e2 = newExam(n); put('exams', e2.id, e2); T.editing = e2.id; T.menu = e2.id; T.sub = ''; T.open = {}; T.tab = 'exams'; render(); break; }
+    case 'open-exam': T.menu = a.dataset.id; T.sub = ''; T.mtab = 'details'; render(); break;
+    case 'menu-back': if (T.sub) T.sub = ''; else T.menu = null; render(); window.scrollTo(0, 0); break;
+    case 'mtab': T.mtab = a.dataset.t; render(); break;
+    case 'edit-key': if (T.menu && getExam(T.menu)) { T.editing = T.menu; T.open = {}; T.warn = ''; render(); window.scrollTo(0, 0); } break;
+    case 'go-scan': T.scanExam = T.menu; T.tab = 'scan'; render(); break;
+    case 'go-review': T.resExam = T.menu; T.rowOpen = ''; T.importMsg = ''; T.tab = 'results'; render(); break;
+    case 'open-ia': T.menu = a.dataset.id || T.menu; T.sub = 'ia'; T.tab = 'exams'; T.editing = null; render(); window.scrollTo(0, 0); break;
+    case 'open-tags': T.sub = 'tags'; render(); window.scrollTo(0, 0); break;
+    case 'tag-apply': {
+      const m = getExam(T.menu); if (!m) break;
+      const n = m.items.length, fr = Math.max(1, Math.min(n, +$('#tg-from').value || 1)), to = Math.max(1, Math.min(n, +$('#tg-to').value || fr)), name = $('#tg-name').value.trim().slice(0, 30);
+      for (let i = Math.min(fr, to) - 1; i < Math.max(fr, to); i++) m.items[i].tag = name;
+      touch(m); render(); toast(name ? `Tagged items ${Math.min(fr, to)} to ${Math.max(fr, to)}.` : 'Tags cleared.'); break;
+    }
+    case 'edit-exam': T.editing = a.dataset.id; T.menu = a.dataset.id; T.open = {}; T.warn = ''; render(); break;
+    case 'close-editor': clearTimeout(saveTimer); if (ex) put('exams', ex.id, ex); T.editing = null; render(); window.scrollTo(0, 0); break;
+    case 'set-n': if (ex) setCount(ex, +a.dataset.n); break;
+    case 'set-k': if (ex) setChoices(ex, +a.dataset.k); break;
+    case 'key': if (ex) { const it = ex.items[+a.dataset.i]; it.a = it.a === a.dataset.l ? '' : a.dataset.l; touch(ex); $('#items').innerHTML = itemsHTML(ex); } break;
+    case 'open-item': T.open[a.dataset.i] = !T.open[a.dataset.i]; if (ex) $('#items').innerHTML = itemsHTML(ex); break;
+    case 'apply-quick': if (ex) {
+      const s = $('#e-quick').value.toUpperCase().replace(/[^A-E]/g, '');
+      if (!s) { toast('Type letters like ABCD, one per item.'); break; }
+      for (let i = 0; i < ex.items.length && i < s.length; i++) ex.items[i].a = LET.indexOf(s[i]) < ex.choices ? s[i] : '';
+      touch(ex); $('#items').innerHTML = itemsHTML(ex);
+      toast(s.length === ex.items.length ? 'Key applied.' : `Key applied to ${Math.min(s.length, ex.items.length)} of ${ex.items.length} items.`);
+    } break;
+    case 'parse-paste': if (ex) importPasted(ex); break;
+    case 'pick-qfile': $('#in-qfile').click(); break;
+    case 'sheet-pdf': if (ex) sheetPDF(ex); break;
+    case 'publish': if (ex) publish(ex); break;
+    case 'unpublish': if (ex && arm('unpub', a, 'Tap again to close the link')) unpublish(ex); break;
+    case 'copy-link': copyText($('#plink').value, $('#plink')).then(ok => toast(ok ? 'Link copied.' : 'Select the link and copy it.')); break;
+    case 'del-exam': if (ex && arm('delex', a, 'Tap again to delete exam and its results')) {
+      resultsOf(ex.id).forEach(r => put('results', r.id, null));
+      const old = ex.pub && ex.pub.assetId; if (old && ASSETS) ASSETS.delete(old).catch(() => {});
+      put('exams', ex.id, null); T.editing = null; T.menu = null; T.sub = ''; render();
+    } break;
+    case 'pick-cam': $('#in-cam').click(); break;
+    case 'pick-file': $('#in-file').click(); break;
+    case 'scan-save': { const s = T.scans.find(x => x.id === a.dataset.sid); if (s) saveScan(s); break; }
+    case 'scan-drop': T.scans = T.scans.filter(x => x.id !== a.dataset.sid); render(); break;
+    case 'row': T.rowOpen = T.rowOpen === a.dataset.id ? '' : a.dataset.id; render(); break;
+    case 'del-result': if (arm('delr' + a.dataset.id, a, 'Tap again to delete')) { put('results', a.dataset.id, null); T.rowOpen = ''; render(); } break;
+    case 'import': { T.importMsg = importCodes($('#imp').value); render(); break; }
+    case 'export-csv': { const e2 = getExam(T.resExam); if (e2) exportCSV(e2); break; }
+    case 'exam-file': if (ex) examFile(ex); break;
+    case 'hide-src': T.srcText = ''; render(); break;
+    case 'backup': backup(); break;
+    case 'restore': $('#in-restore').click(); break;
+    case 'scan-all': saveAllReady(); break;
+    default: break;
+  }
+}
+function onInput(e) {
+  const t = e.target, ex = T.editing ? getExam(T.editing) : null;
+  if (t.dataset.f && ex) {
+    const f = t.dataset.f;
+    if (t.type === 'checkbox') ex[f] = t.checked;
+    else if (f === 'minutes' || f === 'maxAway') ex[f] = Math.max(0, Math.min(f === 'minutes' ? 300 : 20, +t.value || 0));
+    else ex[f] = t.value;
+    touch(ex);
+    if (ex.pub && $('#pub')) $('#pub').innerHTML = pubHTML(ex);
+  } else if (t.dataset.k && ex) {
+    const it = ex.items[+t.dataset.i], k = t.dataset.k;
+    if (k === 'q') it.q = t.value;
+    else if (k === 'pts') { const v = parseFloat(t.value); it.pts = v > 0 ? Math.min(20, v) : 1; }
+    else if (k === 'bonus') it.bonus = !!t.checked;
+    else if (k === 'tag') it.tag = t.value.slice(0, 30);
+    touch(ex);
+    if (k === 'bonus') $('#items').innerHTML = itemsHTML(ex);
+  }
+  else if (t.dataset.c !== undefined && ex) { ex.items[+t.dataset.i].c[+t.dataset.c] = t.value; touch(ex); }
+  else if (t.dataset.s) {
+    const k = t.dataset.s;
+    onInput.t = onInput.t || {};
+    clearTimeout(onInput.t[k]);
+    const val = k === 'thr' || k === 'idLen' ? +t.value : k === 'base' ? t.value.trim() : t.value;
+    onInput.t[k] = setTimeout(() => setCfg({ [k]: val }), 400);
+    if (k === 'thr') t.closest('label').firstChild.textContent = 'Mark sensitivity: ' + (+t.value).toFixed(2);
+  } else if (t.dataset.sf) {
+    const s = T.scans.find(x => x.id === t.dataset.sid);
+    if (s) s[t.dataset.sf] = t.value;
+  } else if (t.id === 'f-n' && ex) {
+    const n = +t.value;
+    if (n >= 1 && n <= 60) { clearTimeout(onInput.n); onInput.n = setTimeout(() => setCount(ex, n), 700); }
+  }
+}
+function onChange(e) {
+  const t = e.target;
+  if (t.id === 'in-cam' || t.id === 'in-file') { const files = t.files; if (files && files.length) onFiles(files).then(() => { t.value = ''; }); return; }
+  if (t.id === 'in-qfile') {
+    const f = t.files && t.files[0], ex = T.editing ? getExam(T.editing) : null;
+    if (f && ex) f.text().then(txt => { $('#e-paste').value = txt; importPasted(ex); $('#paste-msg').textContent = 'From ' + f.name + ': ' + $('#paste-msg').textContent; }).catch(() => { $('#paste-msg').textContent = 'Could not read that file.'; }).finally(() => { t.value = ''; });
+    return;
+  }
+  if (t.id === 'in-restore') { const f = t.files && t.files[0]; if (f) restoreBackup(f).then(m => { T.restoreMsg = m; t.value = ''; render(); }); return; }
+  if (t.dataset.k === 'pts') { const ex = T.editing ? getExam(T.editing) : null; if (ex && $('#items')) $('#items').innerHTML = itemsHTML(ex); return; }
+  if (t.dataset.s === 'scale') { setCfg({ scale: t.value, pass: '' }); render(); return; }
+  if (t.dataset.act === 'pick-exam') { T.scanExam = t.value; render(); return; }
+  if (t.dataset.act === 'pick-res') { T.resExam = t.value; T.rowOpen = ''; T.importMsg = ''; render(); return; }
+  if (t.dataset.act === 'sort') { T.sort = t.value; render(); return; }
+  if (t.dataset.sf === 'sid') {
+    const s = T.scans.find(x => x.id === t.dataset.sid);
+    if (s) { const nm = rosterName(s.sid.trim()); if (nm && !s.name) { s.name = nm; const inp = $('[data-sf="name"][data-sid="' + s.id + '"]'); if (inp) inp.value = nm; } render(); }
+  }
+}
+
+async function teacher() {
+  document.body.classList.add('is-teacher');
+  const cached = LS.get(CACHE_KEY, null);
+  if (cached && typeof cached === 'object') T.S = { exams: cached.exams || {}, results: cached.results || {}, settings: cached.settings || {} };
+  document.addEventListener('click', onClick);
+  document.addEventListener('input', onInput);
+  document.addEventListener('change', onChange);
+  window.addEventListener('online', () => { syncChip(); flush(); });
+  window.addEventListener('offline', syncChip);
+  document.addEventListener('visibilitychange', () => { if (document.hidden && T.editing) { const ex = getExam(T.editing); if (ex) { clearTimeout(saveTimer); put('exams', ex.id, ex); } } });
+  shellHTML();
+  $('#view').innerHTML = '<p class="muted pad">Opening…</p>';
+  const use = n => (window.claude && window.claude.use ? window.claude.use(n).catch(() => null) : Promise.resolve(null));
+  const r = await Promise.all([use('user'), use('db'), use('assets'), use('downloads')]);
+  let can = false;
+  try { can = !!(r[0] && ((await r[0].canEdit()) || (await r[0].isOwner()))); } catch (e) { can = false; }
+  DL = r[3]; ASSETS = r[2];
+  if (can) { T.mode = 'owner'; db = r[1]; if (db) { subscribe(); flush(); } }
+  else T.mode = 'gate';
+  render();
+}
+
+
+(function main() {
+  const h = location.hash.slice(1);
+  if (window.__PM_EXAM) student('');
+  else if (/^q[0-9a-f]{32}$/.test(h)) student(h);
+  else teacher();
+  window.addEventListener('hashchange', () => location.reload());
+})();
+
+})();
+</script>

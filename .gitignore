@@ -1,0 +1,8 @@
+node_modules/
+bundle.js
+pw-out.json
+# files written by the tests
+t[0-9]*-*.png
+t[0-9]*-*.json
+t[0-9]*.pdf
+r[0-9]-*.png

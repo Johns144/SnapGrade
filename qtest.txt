@@ -1,0 +1,12 @@
+1. What is the capital of France?
+A. Lyon
+B. Paris
+C. Nice
+D. Lille
+Answer: B
+2. Which planet is largest?
+A. Mars
+B. Jupiter
+C. Earth
+D. Venus
+Answer: B

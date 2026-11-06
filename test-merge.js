@@ -1,0 +1,17 @@
+const src = require('fs').readFileSync(__dirname + '/app-teacher.js', 'utf8');
+const LET = 'ABCDE';
+const fns = [src.match(/function parseQuestions\(text\) \{[\s\S]*?\n\}\n/)[0], src.match(/function mergeImport\(prev, parsed, k\) \{[\s\S]*?\n\}\n/)[0]].join('\n');
+const { parseQuestions: pq, mergeImport: mg } = new Function('LET', fns + '\nreturn { parseQuestions, mergeImport };')(LET);
+let fails = 0; const ok = (c, m) => { console.log((c ? 'PASS ' : 'FAIL ') + m); if (!c) fails++; };
+const noKey = '1. Capital?\nA. Lyon\nB. Paris\nC. Nice\nD. Lille\n2. Largest?\nA. Mars\nB. Jupiter\nC. Earth\nD. Venus\n';
+const prev = [{ q: 'x', c: [], a: 'B', pts: 1, tag: 'Plate' }, { q: 'y', c: [], a: 'C', pts: 2, tag: 'Rocks' }];
+let r = mg(prev, pq(noKey), 4);
+ok(r.kept === 2 && r.missing === 0, 'keys survive a file without answers');
+ok(r.items[0].tag === 'Plate' && r.items[1].pts === 2, 'tags and points survive re-import');
+r = mg(prev, pq(noKey + 'DA\n'), 4);
+ok(r.items[0].a === 'D' && r.items[1].a === 'A' && r.fromFile === 2, 'a one-line key in the file is used');
+r = mg([], pq('1. Capital?\nA. Lyon\nB. Paris\nAnswer: A\n2. X?\nA. a\nB. b\n'), 4);
+ok(r.items[0].a === 'A' && r.items[1].a === '' && r.missing === 1, 'Answer: lines work and missing keys are counted');
+ok(pq(noKey + 'DA\n').key === 'DA', 'key line is parsed separately from questions');
+ok(r.items.length === 2, 'the key line is not read as a question');
+console.log(fails ? fails + ' FAILED' : 'ALL PASSED'); process.exit(fails ? 1 : 0);

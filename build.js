@@ -1,0 +1,10 @@
+const fs = require('fs');
+const d = __dirname + '/';
+const rd = f => fs.readFileSync(d + f, 'utf8');
+const app = "(function () {\n'use strict';\n" + rd('app-common.js') + '\n' + rd('app-student.js') + '\n' + rd('app-teacher.js') + '\n})();';
+if (/<\/script/i.test(app) || /<\/script/i.test(rd('omr-core.js'))) throw new Error('script terminator inside source');
+const clean = app.replace('/*__TEST_HOOK__*/', '');
+const html = rd('shell.html').replace('<!--OMR-->', () => rd('omr-core.js')).replace('<!--APP-->', () => clean);
+fs.writeFileSync(d + 'pencilmark.html', html);
+fs.writeFileSync(d + 'bundle.js', rd('omr-core.js') + '\n' + app.replace('/*__TEST_HOOK__*/', 'if (window.__PM_TEST) window.__PM_TEST.api = { T, saveScan, scanCard, render, examsHTML, resultsHTML, settingsHTML, restore: restoreBackup };'));
+console.log('built', html.length, 'bytes');
